@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-26 (issue #187, a pager for docs and --explain)
+
+- §14: `docs <name>` and `--explain` page plain text taller than the terminal a screen at a time (built-in, on the shared JNI JLine terminal); piped, Markdown and JSON output are never paged. New global flag `--no-pager`, also accepted by `docs`.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #186, run filters and short run ids)
 
 - §6.6: every command that takes a run id (`runs show`, `runs recover`, `runs support-bundle`, `upgrade rollback`) accepts the end or the start of one id; several matches exit 1 with the candidates. `runs list` gains `--status`, `--operation` and `--since`, applied before `--limit`.

@@ -769,6 +769,7 @@ Each phase has an executable acceptance script in `acceptance/phaseN/` runnable 
 - `docs/decisions/` — ADRs. ADR-0001..0006 are pre-seeded for the scope decisions in §1.3.
 - `docs/BUILD_STATUS.md` — maintained by the agent: phase status, stubbed components, unsigned artifacts, known gaps.
 - Embedded help: `jrsctl help <command>` and `jrsctl <command> --explain`.
+- In a terminal, `jrsctl docs <name>` and `--explain` show plain text taller than the screen a screen at a time through a small built-in pager on the JNI JLine terminal the guided menu uses (Space, Enter, `q`; no `less`/`more` is spawned, no new dependency; ADR-0037). Piped output, `--format markdown` and `--json` are never paged; `--no-pager` (global, and on `docs`) turns it off (#187).
 
 ### 17.1 Guided mode
 
