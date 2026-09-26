@@ -188,7 +188,7 @@ Every fix was confirmed against `main` at `1e9edbf` before it was written, on br
 - **Run directories were never pruned ([#53](https://github.com/robertgorsuch/jrs-ctl/issues/53)).** `RetentionPruner` removes `runs/<runId>/` of ended, unprotected runs older than the cut-off, never a `-hf-` sub-run of a protected run, and leftover `hotfix-verify-*` directories by age. Phase 8 acceptance first failed because the run directories were counted in `kept`; they are now listed in `removed` only and the counts stay snapshot counts. `RetentionPrunerTest` (four new tests) and `Phase8RetentionTest`. Not verified on a long-lived home.
 - **Conduct reports ([#52](https://github.com/robertgorsuch/jrs-ctl/issues/52))** go to `robert.gorsuch@actian.com`.
 - **Spec:** the changes are one "Draft 1.1 amendment — 2026-09-15" entry in `docs/spec-changelog.md`, following the dated-amendment practice of 2026-09-10 to 2026-09-14 rather than the Draft 1.2 bump the plan proposed.
-- **Still open, outside this machine:** #31 (buildomatic on a real share), #33 (Ctrl-C at a real console), #35 (JRS container image), #36 (support engineering review); checklists are in the plan's Task 12.
+- **Still open, outside this machine:** #31 (buildomatic on a real share), #33 (Ctrl-C at a real console), #35 (JRS container image), #36 (support engineering review, met since: see "Support engineering review" below); checklists are in the plan's Task 12.
 
 ### Field test 1.6.0 (2026-09-16 to 2026-09-17)
 
@@ -293,6 +293,18 @@ The unaddressed items of the vendor review were filed as issues #105 to #118 in 
 - **#150 `runs support-bundle`.** The bundle has a CLI command (`RunsCommandTest`, `runs-support-bundle.schema.json`); the console endpoint delegates. Step 1 of ADR-0038.
 - **#151 the web console is removed (ADR-0038, 2.0.0).** app.console, the static UI, Phase6ConsoleTest, the api-* schemas, Javalin/Jetty/Kotlin and the console: configuration block are gone; a 1.x console: block loads with one warning until 2.1; docs/security.md and the spec are Draft 1.2.
 - **#147 installs without a registered service (ADR-0042).** No `script` kind: a WAR + buildomatic Tomcat started with `startup` is the existing `catalina` kind, and `init`'s reason for proposing `catalina` or `manual` now says so. New doctor item `running-tomcat` (`LocalChecks.runningTomcat`, `Platform.runningTomcats`, `core.platform.RunningTomcats`) names the pid of a Tomcat under the layout's Tomcat directory whatever `service.kind` says, and warns when the configured service reports STOPPED while it runs or RUNNING while none does (`RunningTomcatsTest`, `RunningTomcatCheckTest`, two `InitOperationTest` cases, one `WindowsTomcatProcessesTest` case). The live run against the local 10.0.0 binary install first reported a false disagreement: the service's `tomcat10.exe` runs as LocalSystem and `WindowsTomcatProcesses` left unreadable wrappers out, so `findWithServiceWrappers()` now keeps them for reports only (the service steps still use `find()`); rerun, the item passes naming pid 11700, the `netstat` owner of port 8081. Not verified on a real WAR + buildomatic host (none here).
+
+### Support engineering review, spec §20 (#36, recorded 2026-09-26)
+
+Spec §20's "operator guide reviewed by support engineering" is met. The reviewer is Vadym Chepuriaiev, Senior Support Engineer at Jaspersoft (HCL Software), who ran three reviews. Each exercised the tool against a JasperReports Server installation and read the operator guide as the tool prints it (`jrsctl docs`, `<command> --explain`):
+
+| Review | Date | Release under review | Commit | Where the findings went |
+|---|---|---|---|---|
+| 1 | 2026-09-16 to 2026-09-17 | v1.3.0 and v1.4.0 | `7713a96`, `f3fe6b5` | #59 to #75, "Field test 1.6.0" above; acted on in v1.6.0 |
+| 2 | 2026-09-18 | v1.6.0 | `a05d264` | 33 findings, `docs/reviews/2026-09-18-field-test-2-review.md`, "Field test 2 of 1.6.0" above; acted on in v1.7.0 and v1.8.0 |
+| 3 | 2026-09-25 | v2.0.0 | `fe8d718` | ADR-0040, ADR-0041 and `docs/releases/v2.1.0.md`; acted on in v2.1.0 |
+
+Five findings of the third review were still open after v2.1.0 and are now issues: #184 (hotfix staging runs inside the outage), #185 (import does not check the sidecar's SHA-256), #186 (`runs list` filters and shorter run ids), #187 (a pager for `docs` and `--explain`) and #188 (building from a source archive or as root). #75 (a terminal UI for headless servers) also came from the reviews and stays open with `priority: later`.
 
 ## Known gaps
 
