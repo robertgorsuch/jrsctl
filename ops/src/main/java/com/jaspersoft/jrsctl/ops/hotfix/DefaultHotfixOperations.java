@@ -299,10 +299,12 @@ public final class DefaultHotfixOperations implements HotfixOperations {
     steps.add(new HotfixVerifySteps.Preflight(rt, in));
     steps.add(new HotfixVerifySteps.RunChecks(rt, in, false));
     steps.add(new HotfixBackupSteps.TakeSnapshot(rt, in));
+    // staging writes only under runs/<runId>, so it runs before the stop and the outage covers
+    // the swap alone (issue #184)
+    steps.add(new HotfixApplyPhaseSteps.StageFiles(rt, in));
     if (in.restartRequired()) {
       steps.add(ServiceSteps.stop(rt, ApplySteps.APPLY, ServiceSteps.STOP));
     }
-    steps.add(new HotfixApplyPhaseSteps.StageFiles(rt, in));
     steps.add(new HotfixApplyPhaseSteps.AtomicSwap(rt, in));
     if (in.hasSql()) {
       steps.add(new HotfixApplyPhaseSteps.ApplySql(rt, in));

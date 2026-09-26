@@ -146,9 +146,32 @@ final class HotfixApplyPhaseSteps {
       return "per-file rename, ACLs preserved; files already at the target hash are skipped";
     }
 
+    /**
+     * Every add or replace must have its staged copy, or already be in place from a swap that was
+     * interrupted part-way (issue #184): a run left pending by a jrsctl that stopped the service
+     * before staging can resume here with nothing staged. Existence only, so the outage is not
+     * spent re-reading the payload: staging verified each hash and the postcheck re-hashes what
+     * landed.
+     */
     @Override
     public CheckResult precheck(Context ctx) {
       FileOps files = rt.files();
+      List<String> unstaged = new ArrayList<>();
+      for (FileTarget t : in.targets()) {
+        if (t.action() == Manifest.Action.DELETE || Files.isRegularFile(in.staged(ctx, t))) {
+          continue;
+        }
+        String expected = t.after().orElse("");
+        if (!FileTarget.hashOf(files, t.target()).map(expected::equals).orElse(false)) {
+          unstaged.add(t.manifestPath());
+        }
+      }
+      if (!unstaged.isEmpty()) {
+        return CheckResult.fail(
+            "not staged and not in place: " + String.join(", ", unstaged),
+            "stage-files never ran for this run (a run left pending by an older jrsctl, which"
+                + " stopped the service before staging, or a staging tree removed by hand)");
+      }
       List<String> locked = new ArrayList<>();
       for (Path p : in.touched()) {
         if (Files.isRegularFile(p) && files.isLocked(p)) {
