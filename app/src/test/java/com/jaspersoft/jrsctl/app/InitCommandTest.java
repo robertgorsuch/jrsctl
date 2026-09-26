@@ -125,6 +125,20 @@ class InitCommandTest {
         chosen);
   }
 
+  /** ADR-0043 (issue #118): a JBoss or WildFly home is refused with exit 6 before detection. */
+  @Test
+  void should_exit_6_when_the_install_dir_is_a_wildfly_home() throws Exception {
+    Path home = tmp.resolve("home");
+    Path wildfly = tmp.resolve("wildfly-36");
+    Files.createDirectories(wildfly.resolve("standalone").resolve("deployments"));
+
+    Run run = run("init", "--yes", "--home", home.toString(), "--install-dir", wildfly.toString());
+
+    assertThat(run.code()).isEqualTo(ExitCodes.UNSUPPORTED);
+    assertThat(run.err()).contains("JBoss EAP or WildFly").contains("init --remote");
+    assertThat(home.resolve("config.yaml")).doesNotExist();
+  }
+
   @Test
   void should_number_every_installation_and_mark_the_recommended_one_when_listing() {
     StringWriter text = new StringWriter();

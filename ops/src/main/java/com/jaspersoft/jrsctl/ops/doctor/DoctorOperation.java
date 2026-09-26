@@ -32,6 +32,7 @@ public final class DoctorOperation {
           "compat",
           "capabilities",
           "cluster",
+          LocalChecks.DEPLOYMENT,
           "layout",
           "service",
           LocalChecks.RUNNING_TOMCAT,
@@ -95,7 +96,20 @@ public final class DoctorOperation {
     // #68: a jrsctl that reaches the server over REST only has no installation to check
     boolean local = services.config().server().namesLocalInstallation();
     Optional<TomcatLayout> layout = LocalChecks.layout(services);
-    items.add(local ? guard("layout", s -> LocalChecks.layout(s, layout)) : remote("layout"));
+    ReportItem deployment =
+        local
+            ? guard(LocalChecks.DEPLOYMENT, s -> LocalChecks.deployment(s, layout))
+            : remote(LocalChecks.DEPLOYMENT);
+    items.add(deployment);
+    // ADR-0043: on a JBoss/WildFly home the missing Tomcat layout is the deployment item's finding,
+    // not a second one, so a refused deployment alone exits 6
+    boolean notTomcat = local && layout.isEmpty() && deployment.status() == ReportItem.Status.FAIL;
+    items.add(
+        !local
+            ? remote("layout")
+            : notTomcat
+                ? ReportItem.skip("layout", "not a Tomcat deployment", "see the deployment item")
+                : guard("layout", s -> LocalChecks.layout(s, layout)));
     items.add(local ? guard("service", LocalChecks::service) : remote("service"));
     items.add(
         local

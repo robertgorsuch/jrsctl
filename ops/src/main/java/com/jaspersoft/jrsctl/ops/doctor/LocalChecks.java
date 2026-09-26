@@ -28,6 +28,7 @@ import com.jaspersoft.jrsctl.jrs.vendor.BuildomaticResolution;
 import com.jaspersoft.jrsctl.ops.JsConfig;
 import com.jaspersoft.jrsctl.ops.ReportItem;
 import com.jaspersoft.jrsctl.ops.Services;
+import com.jaspersoft.jrsctl.ops.UnsupportedDeployment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -213,6 +214,32 @@ final class LocalChecks {
         .passwordRef()
         .ifPresent(r -> refs.put("network.trustStore.passwordRef", r));
     return refs;
+  }
+
+  /** Report name of the deployment check (ADR-0043). */
+  static final String DEPLOYMENT = DoctorReport.DEPLOYMENT;
+
+  /**
+   * ADR-0043: jrsctl manages JasperReports Server on Tomcat, outside containers. A JBoss EAP or
+   * WildFly home is judged only when no Tomcat layout was found there.
+   */
+  static ReportItem deployment(Services s, Optional<TomcatLayout> layout) {
+    return deploymentItem(
+        s.config().server().installDir(), layout, UnsupportedDeployment.Probe.host());
+  }
+
+  static ReportItem deploymentItem(
+      Optional<Path> installDir, Optional<TomcatLayout> layout, UnsupportedDeployment.Probe probe) {
+    Optional<UnsupportedDeployment.Refusal> refused =
+        UnsupportedDeployment.container(probe)
+            .or(
+                () ->
+                    layout.isPresent()
+                        ? Optional.empty()
+                        : installDir.flatMap(UnsupportedDeployment::jboss));
+    return refused
+        .map(r -> ReportItem.fail(DEPLOYMENT, r.reason(), r.remediation()))
+        .orElseGet(() -> ReportItem.pass(DEPLOYMENT, "Apache Tomcat, not inside a container"));
   }
 
   static Optional<TomcatLayout> layout(Services s) {

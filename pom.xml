@@ -199,6 +199,8 @@
                    Windows will not delete the loaded native library, so the copy must land in the
                    build directory rather than inside a @TempDir home. -->
               <org.sqlite.tmpdir>${project.build.directory}</org.sqlite.tmpdir>
+              <!-- ADR-0043: the tests must pass when the build itself runs in a container -->
+              <jrsctl.containerCheck>false</jrsctl.containerCheck>
             </systemPropertyVariables>
           </configuration>
         </plugin>

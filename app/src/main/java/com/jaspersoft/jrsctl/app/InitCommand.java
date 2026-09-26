@@ -11,6 +11,7 @@ import com.jaspersoft.jrsctl.core.secrets.EncryptedSecretStore;
 import com.jaspersoft.jrsctl.core.secrets.Secret;
 import com.jaspersoft.jrsctl.core.secrets.SecretException;
 import com.jaspersoft.jrsctl.core.state.AuditActor;
+import com.jaspersoft.jrsctl.ops.UnsupportedDeployment;
 import com.jaspersoft.jrsctl.ops.init.InitOperation;
 import com.jaspersoft.jrsctl.ops.init.InitReport;
 import java.io.IOException;
@@ -135,6 +136,20 @@ final class InitCommand implements Callable<Integer> {
     }
     try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
       InitOperation op = new InitOperation(boot.services());
+      if (remote == null) {
+        // ADR-0043: Tomcat only, never inside a container; said before anything is detected
+        Optional<UnsupportedDeployment.Refusal> refused =
+            op.unsupported(Optional.ofNullable(installDir), UnsupportedDeployment.Probe.host());
+        if (refused.isPresent()) {
+          return ExitCodes.fail(
+              out,
+              err,
+              global.json(),
+              ExitCodes.UNSUPPORTED,
+              refused.get().reason(),
+              Optional.of(refused.get().remediation()));
+        }
+      }
       InitReport report =
           remote != null
               ? op.detectRemote(remote)
