@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-26 (issue #185, import checks the sidecar's SHA-256)
+
+- §9.3: import's first precheck, `precheck.archive-checksum`, compares the archive's SHA-256 with the one its sidecar recorded at export and fails before the snapshot, the keystore check or any service stop (exit 2); the plan summary warns when the two already differ at planning time. An archive without a sidecar gets no such step.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #184, hotfix staging before the outage)
 
 - §8: `StageFiles` moves ahead of `StopService` in the `apply` phase, so the payload is copied and hash-checked while the server still runs and the outage covers the swap alone. `AtomicSwap`'s precheck refuses when an add or replace has neither a staged copy nor its target already at the new hash, which covers a run left pending by an older jrsctl that stopped before staging.
