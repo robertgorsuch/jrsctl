@@ -27,7 +27,6 @@ public interface Step {
     return "";
   }
 
-  /** Must be false unless justified in a comment where the step is declared. */
   /**
    * True when a failure of this step must undo the whole run, not only its phase: a step that comes
    * after the mutation it records (the state row of an applied hotfix, say) has nothing of its own
@@ -38,6 +37,7 @@ public interface Step {
     return false;
   }
 
+  /** Must be false unless justified in a comment where the step is declared. */
   default boolean irreversible() {
     return false;
   }

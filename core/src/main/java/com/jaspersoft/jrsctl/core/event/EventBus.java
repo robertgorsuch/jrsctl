@@ -30,6 +30,8 @@ public final class EventBus implements EventSink {
   }
 
   /** Removes every registration of {@code sink}; a no-op when it is not subscribed. */
+  // a sink is usually a lambda, which has no equals of its own: identity is what was registered
+  @SuppressWarnings("ReferenceEquality")
   public void unsubscribe(EventSink sink) {
     subscribers.removeIf(r -> r.sink == sink);
   }

@@ -88,10 +88,6 @@ class DoctorOperationTest {
     }
   }
 
-  /**
-   * Issue #68: from a machine that only reaches the server over REST, the checks of a local
-   * installation are skipped and say why, instead of failing and pointing at jrsctl init.
-   */
   /** Review §2.1: the running Tomcat against the platform sheet; the fixture's server is 8.2.0. */
   @Test
   void should_judge_the_tomcat_version_against_the_matrix_when_it_can_be_read() throws Exception {
@@ -179,6 +175,10 @@ class DoctorOperationTest {
     }
   }
 
+  /**
+   * Issue #68: from a machine that only reaches the server over REST, the checks of a local
+   * installation are skipped and say why, instead of failing and pointing at jrsctl init.
+   */
   @Test
   void should_skip_the_local_installation_checks_when_the_configuration_names_no_installation()
       throws Exception {
@@ -208,11 +208,6 @@ class DoctorOperationTest {
     }
   }
 
-  /**
-   * Issue #73: with the database settings read from default_master.properties, an installation
-   * whose operator never set a database password must not fail doctor, or the upgrade preflight
-   * that runs it; the database is needed only for hotfixes with SQL.
-   */
   /** Seen on the real 10.0.0 server: an unset JRS_DB_PASSWORD failed the whole report. */
   @Test
   void should_skip_the_database_check_when_the_password_is_not_supplied_yet() throws Exception {
@@ -238,6 +233,11 @@ class DoctorOperationTest {
     }
   }
 
+  /**
+   * Issue #73: with the database settings read from default_master.properties, an installation
+   * whose operator never set a database password must not fail doctor, or the upgrade preflight
+   * that runs it; the database is needed only for hotfixes with SQL.
+   */
   @Test
   void should_skip_the_database_check_when_no_password_reference_is_configured() throws Exception {
     Path install = FakeLayout.linux(tmp.resolve("jrs"));

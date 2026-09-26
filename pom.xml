@@ -65,7 +65,7 @@
     <mockito.version>5.23.0</mockito.version>
 
     <!-- Build plugins -->
-    <errorprone.version>2.28.0</errorprone.version>
+    <errorprone.version>2.50.0</errorprone.version>
     <google-java-format.version>1.22.0</google-java-format.version>
     <spotless.version>2.43.0</spotless.version>
     <surefire.version>3.2.5</surefire.version>
@@ -168,7 +168,11 @@
             <compilerArgs>
               <arg>-XDcompilePolicy=simple</arg>
               <arg>--should-stop=ifError=FLOW</arg>
-              <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -XepExcludedPaths:.*/target/generated-.*</arg>
+              <!-- Error Prone 2.37+ refuses to run on JDK 21 without it -->
+              <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+              <!-- StringConcatToTextBlock is off: the fixtures it flags build scripts and files
+                   byte for byte, and a text block turns a batch file's \r\n into \n -->
+              <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -XepExcludedPaths:.*/target/generated-.* -Xep:StringConcatToTextBlock:OFF</arg>
               <arg>-Xlint:all,-processing,-serial,-requires-automatic,-requires-transitive-automatic,-missing-explicit-ctor,-try</arg>
               <arg>-Werror</arg>
             </compilerArgs>

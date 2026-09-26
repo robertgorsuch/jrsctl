@@ -106,7 +106,7 @@ final class Archives {
             return FileVisitResult.CONTINUE;
           }
 
-          /**
+          /*
            * Every non-directory the walk reaches, symbolic links included. The walk does not follow
            * links, so a link to a directory arrives here rather than being descended, and the
            * per-format writer decides whether it can be represented; nothing is dropped in silence.

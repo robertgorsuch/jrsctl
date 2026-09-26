@@ -103,9 +103,7 @@ class HotfixSqlTest {
 
       RunOutcome outcome = f.run(f.ops().planApply(zip, SIGNED), "r-delim");
 
-      assertThat(outcome)
-          .as(String.join("\n", f.events.toString()))
-          .isInstanceOf(RunOutcome.Succeeded.class);
+      assertThat(outcome).as(f.events.toString()).isInstanceOf(RunOutcome.Succeeded.class);
       assertThat(f.jdbc.executed)
           .as("the procedure body must reach the driver as one statement")
           .containsExactly("SELECT 1", body);

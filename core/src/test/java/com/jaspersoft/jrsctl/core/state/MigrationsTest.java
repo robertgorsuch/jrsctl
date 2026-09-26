@@ -22,11 +22,6 @@ class MigrationsTest {
 
   @TempDir Path tmp;
 
-  /**
-   * Review findings 1.14 and 1.15: rows written before V002 carry variable-width timestamps and no
-   * path key. The migration rewrites the former at millisecond precision and fills the latter, so
-   * an existing installation orders and matches correctly after the upgrade.
-   */
   /** A downgraded binary must not read and write a schema it does not know (assessment item E6). */
   @Test
   void should_refuse_a_database_written_by_a_newer_build() throws Exception {
@@ -46,6 +41,11 @@ class MigrationsTest {
     }
   }
 
+  /**
+   * Review findings 1.14 and 1.15: rows written before V002 carry variable-width timestamps and no
+   * path key. The migration rewrites the former at millisecond precision and fills the latter, so
+   * an existing installation orders and matches correctly after the upgrade.
+   */
   @Test
   void should_normalise_legacy_timestamps_and_fill_path_keys_when_migrating_from_v1()
       throws Exception {

@@ -341,18 +341,18 @@ public final class VendorTools {
   }
 
   /**
-   * Review finding 2.8: a batch wrapper re-reads its arguments as {@code %1} tokens, and cmd splits
-   * a token at a comma, a semicolon or an equals sign, so {@code --uris /a,/b} arrived as three
-   * arguments. Such a value is wrapped in double quotes, which cmd keeps as one token and strips
-   * before the importer sees it. Java already quotes arguments holding spaces.
-   */
-  /**
    * What cmd splits a token at or treats as an operator: delimiters, and the redirection and
    * chaining characters. A percent sign is left alone, since batch expansion happens inside quotes
    * too; the operator guide names it as unsupported with the vendor strategy on Windows.
    */
   static final String CMD_METACHARACTERS = ",;=&|<>^";
 
+  /**
+   * Review finding 2.8: a batch wrapper re-reads its arguments as {@code %1} tokens, and cmd splits
+   * a token at a comma, a semicolon or an equals sign, so {@code --uris /a,/b} arrived as three
+   * arguments. Such a value is wrapped in double quotes, which cmd keeps as one token and strips
+   * before the importer sees it. Java already quotes arguments holding spaces.
+   */
   static String quoteForCmd(String arg) {
     boolean splits = false;
     for (int i = 0; i < CMD_METACHARACTERS.length(); i++) {
@@ -363,11 +363,6 @@ public final class VendorTools {
     return splits && !quoted && !spaced ? "\"" + arg + "\"" : arg;
   }
 
-  /**
-   * {@code <javaHome>/bin} followed by the inherited {@code PATH} (looked up case-insensitively, as
-   * Windows spells it {@code Path}), joined with {@code ;} for batch wrappers and {@code :} for
-   * shell ones.
-   */
   /**
    * The inherited {@code JAVA_OPTS} with {@code -Djs.cache.provider=<provider>} appended, or the
    * inherited value unchanged when it already names that property, so an operator's own choice
@@ -383,6 +378,11 @@ public final class VendorTools {
     return current.isEmpty() ? flag : current + " " + flag;
   }
 
+  /**
+   * {@code <javaHome>/bin} followed by the inherited {@code PATH} (looked up case-insensitively, as
+   * Windows spells it {@code Path}), joined with {@code ;} for batch wrappers and {@code :} for
+   * shell ones.
+   */
   static String pathWithJavaFirst(Path javaHome, Map<String, String> inherited, boolean batch) {
     String separator = batch ? ";" : ":";
     String bin = javaHome.resolve("bin").toString();

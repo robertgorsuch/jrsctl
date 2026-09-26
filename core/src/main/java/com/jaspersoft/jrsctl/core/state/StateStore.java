@@ -149,6 +149,8 @@ public final class StateStore implements Journal, AutoCloseable {
   }
 
   /** True for the two codes SQLite uses while another connection holds the write lock. */
+  // getCause() == t is the guard against a throwable that names itself as its cause
+  @SuppressWarnings("ReferenceEquality")
   private static boolean busy(SQLException e) {
     for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause()) {
       String message = t.getMessage() == null ? "" : t.getMessage();

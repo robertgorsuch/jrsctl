@@ -47,7 +47,6 @@ public interface HotfixOperations {
   /** Options for {@code hotfix rollback}. */
   record RollbackOptions(boolean cascade) {}
 
-  /** Result of {@code hotfix verify}: signature, hashes and applicability only. */
   /**
    * What verification found. {@code official} is true for an official Jaspersoft package
    * (ADR-0024), which carries no jrsctl signature to fail, so it is {@link #ok()} on hashes and
@@ -73,6 +72,7 @@ public interface HotfixOperations {
   /** Builds a signed bundle from a directory holding manifest.json, payload/, sql/, checks/. */
   Path build(Path bundleDir, SecretRef privateKeyRef, Path out);
 
+  /** Result of {@code hotfix verify}: signature, hashes and applicability only. */
   VerifyReport verify(Path bundle);
 
   Plan planApply(Path bundle, ApplyOptions options);

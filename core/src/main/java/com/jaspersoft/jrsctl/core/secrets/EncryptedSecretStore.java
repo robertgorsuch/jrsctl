@@ -213,7 +213,6 @@ public final class EncryptedSecretStore {
     return List.copyOf(names);
   }
 
-  /** The decrypted entry, or empty when no such entry exists. */
   /**
    * True when {@link #get} would not ask anyone for the passphrase: the key is already derived, or
    * the passphrase source answers without a prompt (field test 2, D1).
@@ -222,6 +221,7 @@ public final class EncryptedSecretStore {
     return cachedKey != null || passphrase.availableWithoutPrompt();
   }
 
+  /** The decrypted entry, or empty when no such entry exists. */
   public Optional<Secret> get(String name) {
     checkName(name);
     ObjectNode root = read();

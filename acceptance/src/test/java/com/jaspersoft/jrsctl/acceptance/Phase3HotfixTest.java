@@ -262,6 +262,8 @@ class Phase3HotfixTest {
     return target;
   }
 
+  // carries one zip entry to an edit function and is never compared, so array identity is harmless
+  @SuppressWarnings("ArrayRecordComponent")
   private record Entry(String name, byte[] bytes) {}
 
   private static Path fileInTomcat(String relative) {

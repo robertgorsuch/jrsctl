@@ -215,7 +215,7 @@ public final class FakePlatform implements Platform {
         return "default";
       }
 
-      /** Like the real file ops: a path that does not exist yet is measured where it will be. */
+      /* Like the real file ops: a path that does not exist yet is measured where it will be. */
       private void requireExistingAncestor(Path path) throws IOException {
         Path probe = path.toAbsolutePath().normalize();
         while (probe != null && !Files.exists(probe)) {

@@ -6,7 +6,7 @@ package com.jaspersoft.jrsctl.jrs.vendor;
  * ("Import and Export from the Command Line"). Invariant: no other class spells a vendor flag, so
  * when a vendor release renames or drops an option this file is the first and only place to check;
  * the {@code KEYSTORE}/{@code STOREPASS} pair used for the keystore import step (spec §9.3) is the
- * least certain of the set and is called out in {@link VendorTools#importKeystore}.
+ * least certain of the set and is called out in {@link VendorTools#keystoreArgs}.
  */
 public final class VendorFlags {
 

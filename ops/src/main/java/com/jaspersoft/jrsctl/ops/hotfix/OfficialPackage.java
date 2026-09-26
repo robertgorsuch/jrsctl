@@ -91,7 +91,6 @@ final class OfficialPackage {
     return Json.read(Files.readString(notesFile(bundle), StandardCharsets.UTF_8), Converted.class);
   }
 
-  /** True when {@code zip} is an official package rather than a jrsctl bundle. */
   /** What {@code hotfix record} stores about a package applied by hand (ADR-0030, issue #99). */
   record Described(String id, String title, String release) {}
 
@@ -135,6 +134,7 @@ final class OfficialPackage {
       " is not an official Jaspersoft hotfix package (readme.txt beside jasperserver[-pro].zip,"
           + " js-install.zip or an unpacked jasperserver[-pro]/ tree)";
 
+  /** True when {@code zip} is an official package rather than a jrsctl bundle. */
   static boolean looksOfficial(Path zip) {
     return shape(zip).map(Shape::official).orElse(false);
   }

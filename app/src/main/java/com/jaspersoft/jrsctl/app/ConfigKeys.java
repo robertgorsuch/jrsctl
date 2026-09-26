@@ -72,7 +72,6 @@ final class ConfigKeys {
 
   private ConfigKeys() {}
 
-  /** The description of {@code key}, or a note that it has none. */
   /** What a path-valued key must point at when it is written (field test 2, G9). */
   enum PathKind {
     NONE,
@@ -100,6 +99,7 @@ final class ConfigKeys {
     return PathKind.NONE;
   }
 
+  /** The description of {@code key}, or a note that it has none. */
   static String description(String key) {
     return DESCRIPTIONS.getOrDefault(key, "(no description)");
   }

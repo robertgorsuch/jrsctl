@@ -81,10 +81,6 @@ public record Polling(
   }
 
   /**
-   * Polls {@code attempt} until it reports {@link Tick.Done} or {@link Tick.Failed}, the timeout
-   * elapses, or the run is cancelled (which propagates as {@code CancelledException}).
-   */
-  /**
    * How many polls in a row may fail with a transient answer (a 503 from a restarting Tomcat, a 502
    * from a proxy, a refused connection) before the poll gives up (review finding 2.2). One blip
    * during a two-hour export used to fail the run while the server-side task went on.
@@ -116,6 +112,10 @@ public record Polling(
     return new Tick.Continue("");
   }
 
+  /**
+   * Polls {@code attempt} until it reports {@link Tick.Done} or {@link Tick.Failed}, the timeout
+   * elapses, or the run is cancelled (which propagates as {@code CancelledException}).
+   */
   public Outcome until(Context ctx, EventSink out, Step step, String what, Supplier<Tick> attempt) {
     Instant start = clock.instant();
     Instant lastLog = start;

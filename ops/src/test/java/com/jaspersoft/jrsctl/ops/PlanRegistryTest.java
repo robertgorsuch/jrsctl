@@ -712,6 +712,7 @@ class PlanRegistryTest {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality") // a proxy's equals is identity by definition
     public Object invoke(Object proxy, Method method, Object[] arguments) {
       if (method.getDeclaringClass() == Object.class) {
         return switch (method.getName()) {
