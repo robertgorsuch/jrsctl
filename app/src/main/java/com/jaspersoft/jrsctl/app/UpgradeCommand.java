@@ -303,6 +303,26 @@ final class UpgradeCommand implements Callable<Integer> {
           new UpgradeOperations.RollbackOptions(parsed, restoreDatabase);
       try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
         Services services = boot.services();
+        // issue #186: part of the id is enough; an unknown id reaches planRollback unchanged, so
+        // its own refusal and remediation still apply
+        switch (RunRef.resolve(services.stateStore().get(), runId)) {
+          case RunRef.Resolved.Found f -> runId = f.run().runId();
+          case RunRef.Resolved.Unknown u -> {}
+          case RunRef.Resolved.Ambiguous a -> {
+            return ExitCodes.fail(
+                out,
+                err,
+                global.json(),
+                ExitCodes.USAGE,
+                "run id "
+                    + runId
+                    + " matches "
+                    + a.ids().size()
+                    + " runs: "
+                    + String.join(", ", a.ids()),
+                Optional.of("give more of the id"));
+          }
+        }
         Plan planned;
         try {
           planned = new DefaultUpgradeOperations(services).planRollback(runId, options);
