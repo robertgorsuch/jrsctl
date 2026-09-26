@@ -79,6 +79,31 @@ class DocsCommandTest {
         .doesNotContain("**");
   }
 
+  /**
+   * Issue #187: without a terminal nothing is paged, so the text is the same with or without
+   * --no-pager, and the flag is accepted on docs and beside --explain on any command.
+   */
+  @Test
+  void should_print_the_same_text_unpaged_when_no_terminal_or_no_pager_is_given() {
+    StringWriter plain = new StringWriter();
+    CommandLine a = Main.commandLine();
+    a.setOut(new PrintWriter(plain));
+    assertThat(a.execute("docs", "operator-guide", "--format", "text")).isZero();
+
+    StringWriter noPager = new StringWriter();
+    CommandLine b = Main.commandLine();
+    b.setOut(new PrintWriter(noPager));
+    assertThat(b.execute("docs", "operator-guide", "--format", "text", "--no-pager")).isZero();
+
+    assertThat(noPager.toString()).isEqualTo(plain.toString()).doesNotContain("-- more (");
+
+    StringWriter explained = new StringWriter();
+    CommandLine c = Main.commandLine();
+    c.setOut(new PrintWriter(explained));
+    assertThat(c.execute("runs", "list", "--explain", "--no-pager")).isZero();
+    assertThat(explained.toString()).contains("runs list").doesNotContain("-- more (");
+  }
+
   @Test
   void should_print_the_markdown_source_when_format_markdown_given() {
     StringWriter out = new StringWriter();

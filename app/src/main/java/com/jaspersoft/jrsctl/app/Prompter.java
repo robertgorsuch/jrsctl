@@ -16,7 +16,6 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Parser;
 import org.jline.reader.UserInterruptException;
-import org.jline.terminal.TerminalBuilder;
 
 /**
  * Questions for the operator across several prompts in one command (#63). Invariants: answers come
@@ -35,7 +34,6 @@ final class Prompter {
   private static volatile Optional<BufferedReader> stdin = Optional.empty();
   private static volatile boolean jlineUnavailable = false;
   private static volatile Optional<LineReader> jlineReader = Optional.empty();
-  private static volatile Optional<org.jline.terminal.Terminal> jlineTerminal = Optional.empty();
 
   /**
    * A parser that treats the whole line as one word: these are single-path prompts, not commands.
@@ -120,45 +118,27 @@ final class Prompter {
   }
 
   /**
-   * A cached JLine reader for {@link #path}, built once per process from a JNI terminal provider
-   * (no JNA, ADR-0037) and never rebuilt once building it has failed. Empty when there is no
-   * console at all, since a piped or redirected session gets nothing from line editing either way.
+   * A cached JLine reader for {@link #path}, built once per process on the shared {@link
+   * SystemTerminal} (JNI provider, no JNA, ADR-0037) and never rebuilt once building it has failed.
+   * Empty when there is no console at all, since a piped or redirected session gets nothing from
+   * line editing either way.
    */
   private static synchronized Optional<LineReader> jlineReader() {
-    if (jlineUnavailable || !Terminal.present()) {
+    if (jlineUnavailable) {
       return Optional.empty();
     }
     if (jlineReader.isPresent()) {
       return jlineReader;
     }
+    Optional<org.jline.terminal.Terminal> terminal = SystemTerminal.get();
+    if (terminal.isEmpty()) {
+      return Optional.empty();
+    }
     try {
-      org.jline.terminal.Terminal terminal =
-          TerminalBuilder.builder()
-              .system(true)
-              .provider("jni")
-              .jni(true)
-              .ffm(false)
-              .jna(false)
-              .jansi(false)
-              .exec(false)
-              .dumb(false)
-              .build();
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () -> {
-                    try {
-                      terminal.close();
-                    } catch (IOException ignored) {
-                      // best effort: the process is exiting either way
-                    }
-                  },
-                  "jrsctl-jline-close"));
-      jlineTerminal = Optional.of(terminal);
       jlineReader =
           Optional.of(
               LineReaderBuilder.builder()
-                  .terminal(terminal)
+                  .terminal(terminal.get())
                   .parser(WHOLE_LINE_PARSER)
                   .completer(new PathCompleter())
                   .build());
@@ -175,11 +155,11 @@ final class Prompter {
    * is no JLine terminal, under test or when piped.
    */
   private static Optional<LineReader> plainReader(java.util.Collection<String> completions) {
-    if (override.isPresent() || jlineReader().isEmpty() || jlineTerminal.isEmpty()) {
+    if (override.isPresent() || jlineReader().isEmpty() || SystemTerminal.get().isEmpty()) {
       return Optional.empty();
     }
     LineReaderBuilder builder =
-        LineReaderBuilder.builder().terminal(jlineTerminal.get()).parser(WHOLE_LINE_PARSER);
+        LineReaderBuilder.builder().terminal(SystemTerminal.get().get()).parser(WHOLE_LINE_PARSER);
     if (!completions.isEmpty()) {
       builder.completer(new org.jline.reader.impl.completer.StringsCompleter(completions));
     }
