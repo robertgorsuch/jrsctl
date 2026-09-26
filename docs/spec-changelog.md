@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-26 (issue #184, hotfix staging before the outage)
+
+- §8: `StageFiles` moves ahead of `StopService` in the `apply` phase, so the payload is copied and hash-checked while the server still runs and the outage covers the swap alone. `AtomicSwap`'s precheck refuses when an add or replace has neither a staged copy nor its target already at the new hash, which covers a run left pending by an older jrsctl that stopped before staging.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #147, installs without a registered service)
 
 - §5.1, §12.0: a WAR + buildomatic install uses the existing `catalina` kind (or `manual`); no `script` kind is added (ADR-0042). `init` says why it proposes `catalina` or `manual`.

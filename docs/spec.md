@@ -471,9 +471,9 @@ Phase `backup`:
 5. `Snapshot` — every file to be replaced or deleted.
 
 Phase `apply`:
-6. `StopService` — always when `restart: required`.
-7. `StageFiles` — write to `runs/<runId>/staging/`, verify hashes.
-8. `AtomicSwap` — per file: rename staging into place (replace/add) or move to snapshot (delete). Idempotent: a file already at the target hash is skipped.
+6. `StageFiles` — write to `runs/<runId>/staging/`, verify hashes. It touches nothing under the webapp, so it runs before the stop and the outage covers the swap alone (#184).
+7. `StopService` — always when `restart: required`.
+8. `AtomicSwap` — per file: rename staging into place (replace/add) or move to snapshot (delete). Idempotent: a file already at the target hash is skipped. Its precheck refuses when an add or replace has neither a staged copy nor its target already at the new hash (a run left pending by a jrsctl that staged after the stop can resume here with nothing staged; only rollback is then offered).
 9. `ApplySql` — run each script via JDBC using the driver jar from `database.driverDir`; each script is idempotent by contract; compensation runs `rollbackFile` in reverse order.
 10. `StartService` + `WaitForServer`.
 11. `RunPostchecks`.
