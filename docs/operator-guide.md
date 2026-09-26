@@ -102,10 +102,11 @@ Every command accepts these flags, before or after the command name.
 | `--no-color` | the same as `--color=never` |
 | `--ascii` | never use the tick and arrow glyphs; status icons become ASCII words (`OK`, `FAIL`, `RETRY`, `UNDO`, `SKIP`). The glyphs are also dropped automatically when the output code page cannot carry them, so a cp850 console shows the words |
 | `--json` | emit the result as JSON instead of text (mutating commands: the plan document, then one JSON object per event, then a final `{"outcome": ...}` line) |
-| `--explain` | print the long-form explanation of the command and exit 0 without running it |
+| `--explain` | print the long-form explanation of the command and exit 0 without running it; in a terminal a section taller than the screen is shown a screen at a time (Space: next page, Enter: next line, `q`: quit) |
+| `--no-pager` | print `--explain` text at once instead of a screen at a time (#187) |
 | `-h`, `--help` / `-V`, `--version` | usage / version banner |
 
-`selfcheck`, `docs` and `help` need no configuration and therefore accept only `--json` (where it applies), `--explain` and `--help`.
+`selfcheck`, `docs` and `help` need no configuration and therefore accept only `--json` (where it applies), `--explain` and `--help`; `docs` also takes its own `--no-pager`.
 
 Colour is used only when the terminal interprets ANSI escapes, `NO_COLOR` is unset and neither `--no-color` nor `--color=never` was given; glyphs and colour are separate decisions, so a console that cannot print `✔` still gets colour and a terminal without colour still gets glyphs. Every output line passes the redaction filter, so configured secrets never appear in text, JSON or the log.
 
@@ -634,14 +635,14 @@ Lists the entry names in `secrets.enc`; values are never shown. No passphrase is
 - **Exit codes:** 0; **2** when the store does not exist.
 - **Flags:** `--json` — the names as a JSON array.
 
-### `jrsctl docs [<name>] [--format auto|text|markdown] [--json]`
+### `jrsctl docs [<name>] [--format auto|text|markdown] [--no-pager] [--json]`
 
 Offline documentation. Without an argument it lists the documents embedded in the jar at build time (name, title, size); with a name it prints that document to standard output: as plain text in a terminal (headings underlined, tables aligned or listed row by row, no Markdown markup, wrapped to `COLUMNS` or 80 columns), and as its Markdown source when redirected to a file or a pipe (#60). The embedded documents are `operator-guide` (this guide), `hotfix-authoring` (bundle format, `hotfix build`, signing, testing a bundle), `security` (threat model, key management, hardening) and `readme`.
 
 - **Mutates:** nothing; read-only and independent of the jrsctl home, configuration and server.
 - **Rollback:** not applicable.
 - **Exit codes:** 0; **1** when the name is not one of the embedded documents (the message lists the valid names).
-- **Flags:** `<name>` — the document to print; `--format auto|text|markdown` — `auto` (default) chooses by whether standard output is a terminal, `text` forces plain text (for example `jrsctl docs operator-guide --format text | less`), `markdown` forces the source; `--json` — the listing as a JSON array of `{"name", "title", "bytes"}` (ignored when a name is given).
+- **Flags:** `<name>` — the document to print; `--format auto|text|markdown` — `auto` (default) chooses by whether standard output is a terminal, `text` forces plain text (for example `jrsctl docs operator-guide --format text | less`), `markdown` forces the source; `--no-pager` — print the whole document at once: by default a document shown as plain text in a terminal is paged a screen at a time (Space: next page, Enter: next line, `q`: quit; #187), while piped output, `--format markdown` and `--json` are never paged; `--json` — the listing as a JSON array of `{"name", "title", "bytes"}` (ignored when a name is given).
 
 ### `jrsctl help [<command>]`
 

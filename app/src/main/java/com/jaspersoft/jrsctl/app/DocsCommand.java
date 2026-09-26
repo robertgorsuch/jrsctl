@@ -55,6 +55,11 @@ final class DocsCommand implements Callable<Integer> {
           "auto (plain text on a terminal, Markdown otherwise), text or markdown. Default: auto.")
   Format format = Format.AUTO;
 
+  @Option(
+      names = "--no-pager",
+      description = "Print the whole document at once instead of a screen at a time.")
+  boolean noPager;
+
   @Override
   public Integer call() {
     PrintWriter out = spec.commandLine().getOut();
@@ -79,8 +84,11 @@ final class DocsCommand implements Callable<Integer> {
     if (text) {
       Optional<List<String>> lines = EmbeddedDocs.lines(name);
       if (lines.isPresent()) {
-        out.print(TerminalMarkdown.render(lines.get(), TerminalMarkdown.width(Env.vars())));
-        out.flush();
+        // issue #187: a terminal gets a screen at a time unless --no-pager
+        Pager.print(
+            TerminalMarkdown.render(lines.get(), TerminalMarkdown.width(Env.vars())),
+            out,
+            Terminal.present() && !noPager);
         return ExitCodes.SUCCESS;
       }
     } else if (EmbeddedDocs.print(name, out)) {

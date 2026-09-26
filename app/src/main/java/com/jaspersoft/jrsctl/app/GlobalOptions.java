@@ -76,6 +76,11 @@ public final class GlobalOptions {
   @Option(names = "--json", description = "Emit the result as JSON instead of text.")
   boolean json;
 
+  @Option(
+      names = "--no-pager",
+      description = "Print long --explain text at once instead of a screen at a time.")
+  boolean noPager;
+
   public Optional<Path> home() {
     return Optional.ofNullable(home);
   }

@@ -233,13 +233,27 @@ final class Explain {
       }
       PrintWriter out = target.getOut();
       // #60: Markdown is unreadable in a terminal; piped output keeps it for tools and tests
-      out.print(
-          Terminal.present()
-              ? TerminalMarkdown.render(
-                  BLANK_LINE.splitAsStream(text.get()).toList(), TerminalMarkdown.width(Env.vars()))
-              : text.get());
-      out.flush();
+      if (Terminal.present()) {
+        // issue #187: a long section is paged unless --no-pager was given at any level
+        Pager.print(
+            TerminalMarkdown.render(
+                BLANK_LINE.splitAsStream(text.get()).toList(), TerminalMarkdown.width(Env.vars())),
+            out,
+            !noPager(parseResult));
+      } else {
+        out.print(text.get());
+        out.flush();
+      }
       return ExitCodes.SUCCESS;
+    }
+
+    private static boolean noPager(ParseResult parseResult) {
+      for (ParseResult pr = parseResult; pr != null; pr = pr.subcommand()) {
+        if (pr.hasMatchedOption("--no-pager")) {
+          return true;
+        }
+      }
+      return false;
     }
 
     private static CommandLine root(CommandLine cmd) {
