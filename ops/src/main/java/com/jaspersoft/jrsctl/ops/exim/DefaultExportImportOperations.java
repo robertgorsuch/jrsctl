@@ -241,6 +241,16 @@ public final class DefaultExportImportOperations implements ExportImportOperatio
               + " server's own");
     }
     warnings.addAll(sidecarWarnings);
+    // issue #185: said at planning time too, so --plan shows it before anything runs
+    sidecar
+        .filter(sc -> !VerifyArchiveChecksum.matches(sc.sha256(), archiveHash))
+        .ifPresent(
+            sc ->
+                warnings.add(
+                    VerifyArchiveChecksum.mismatch(archive, sc.sha256(), archiveHash)
+                        + "; the import stops at "
+                        + VerifyArchiveChecksum.ID
+                        + " (exit 2) before anything is changed"));
     sidecar.ifPresent(s -> refuseNewerCatalog(s, identity, options.forceVersion(), warnings));
     if (themesDefaulted) {
       warnings.add(
@@ -323,6 +333,8 @@ public final class DefaultExportImportOperations implements ExportImportOperatio
     String importPhase =
         firstMutating < importSteps.size() ? importSteps.get(firstMutating).phase() : IMPORT_PHASE;
     List<Step> steps = new ArrayList<>();
+    sidecar.ifPresent(
+        sc -> steps.add(new VerifyArchiveChecksum(archive, sc.sha256(), archiveHash)));
     for (Step s : importSteps.subList(0, firstMutating)) {
       steps.add(Rephased.into(PRECHECK_PHASE, s));
     }

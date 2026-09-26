@@ -3,7 +3,9 @@ package com.jaspersoft.jrsctl.ops.exim;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.jaspersoft.jrsctl.core.engine.CheckResult;
 import com.jaspersoft.jrsctl.core.engine.Plan;
+import com.jaspersoft.jrsctl.core.engine.RunOutcome;
 import com.jaspersoft.jrsctl.core.engine.Step;
 import com.jaspersoft.jrsctl.jrs.api.Capability;
 import com.jaspersoft.jrsctl.jrs.api.ExportImportStrategy;
@@ -81,6 +83,11 @@ class DefaultExportImportOperationsTest {
 
   private void sidecar(List<String> uris, boolean fullServer, String sourceVersion)
       throws IOException {
+    sidecar(uris, fullServer, sourceVersion, EximFixture.sha256(archive));
+  }
+
+  private void sidecar(List<String> uris, boolean fullServer, String sourceVersion, String sha256)
+      throws IOException {
     Sidecar.write(
         Sidecar.pathFor(archive),
         new Sidecar(
@@ -97,7 +104,7 @@ class DefaultExportImportOperationsTest {
                 false,
                 false,
                 fullServer),
-            "0000",
+            sha256,
             ExportImportStrategy.Kind.REST));
   }
 
@@ -282,7 +289,7 @@ class DefaultExportImportOperationsTest {
                 false,
                 false,
                 Optional.of(ExportRequest.PORTABLE_KEY_ALIAS)),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.REST));
 
     Plan plan = fx.ops().planImport(importOf(archive, false));
@@ -326,6 +333,60 @@ class DefaultExportImportOperationsTest {
     assertThat(adapter.imports).as("planning must not import").isEmpty();
   }
 
+  /** Issue #185: the sidecar's SHA-256 is compared first, before the snapshot and any stop. */
+  @Test
+  void should_verify_the_archive_checksum_first_when_the_archive_has_a_sidecar()
+      throws IOException {
+    sidecar(List.of("/public"), false);
+
+    Plan plan = fx.ops().planImport(importOf(archive, false));
+
+    assertThat(ids(plan).get(0)).isEqualTo("precheck.archive-checksum");
+    assertThat(plan.steps().get(0).phase()).isEqualTo("precheck");
+    assertThat(plan.steps().get(0).mutating()).isFalse();
+    assertThat(plan.steps().get(0).precheck(fx.context(EximFixture.RUN)).failed()).isFalse();
+    assertThat(plan.summary().warnings()).noneMatch(w -> w.contains("SHA-256"));
+  }
+
+  @Test
+  void should_refuse_at_the_checksum_step_when_the_archive_differs_from_its_sidecar()
+      throws IOException {
+    sidecar(List.of("/public"), false, "8.2.0", "0".repeat(64));
+
+    Plan plan = fx.ops().planImport(importOf(archive, false));
+
+    assertThat(plan.summary().warnings())
+        .anyMatch(w -> w.contains("SHA-256") && w.contains("precheck.archive-checksum"));
+    CheckResult pre = plan.steps().get(0).precheck(fx.context(EximFixture.RUN));
+    assertThat(pre.failed()).isTrue();
+    assertThat(((CheckResult.Fail) pre).message())
+        .contains("public.zip")
+        .contains("0".repeat(12))
+        .contains(EximFixture.sha256(archive).substring(0, 12));
+    assertThat(((CheckResult.Fail) pre).remediation()).contains("export");
+  }
+
+  @Test
+  void should_stop_before_the_snapshot_when_the_archive_differs_from_its_sidecar()
+      throws IOException {
+    sidecar(List.of("/public"), false, "8.2.0", "0".repeat(64));
+
+    RunOutcome outcome = fx.run(fx.ops().planImport(importOf(archive, false)), EximFixture.RUN);
+
+    assertThat(outcome).isInstanceOf(RunOutcome.PrecheckFailed.class);
+    assertThat(((RunOutcome.PrecheckFailed) outcome).stepId())
+        .isEqualTo("precheck.archive-checksum");
+    assertThat(adapter.exports).as("no pre-import snapshot").isEmpty();
+    assertThat(adapter.imports).as("nothing imported").isEmpty();
+  }
+
+  @Test
+  void should_plan_no_checksum_step_when_the_archive_has_no_sidecar() {
+    Plan plan = fx.ops().planImport(importOf(archive, false));
+
+    assertThat(ids(plan)).doesNotContain("precheck.archive-checksum");
+  }
+
   @Test
   void should_order_precheck_backup_then_import_when_planning_a_rest_import() throws IOException {
     sidecar(List.of("/public"), false);
@@ -335,6 +396,7 @@ class DefaultExportImportOperationsTest {
     assertThat(phases(plan)).containsExactly("precheck", "backup", "import");
     assertThat(ids(plan))
         .containsExactly(
+            "precheck.archive-checksum",
             "precheck.import.check-keystore",
             "backup.pre-import-snapshot",
             "backup.pre-import-listing",
@@ -359,10 +421,10 @@ class DefaultExportImportOperationsTest {
         .noneMatch(w -> w.contains("no sidecar"));
     assertThat(plan.summary().strategy()).startsWith("rest (").contains("IMPORT_ASYNC");
     assertThat(plan.summary().serviceRestart()).isFalse();
-    assertThat(plan.steps().get(1).detail()).startsWith("/public -> ");
-    assertThat(plan.steps().get(2).detail()).startsWith("every URI under /public -> ");
-    assertThat(plan.steps().get(3).detail()).isEqualTo("uris /public");
-    assertThat(plan.steps().get(7).mutating()).isTrue();
+    assertThat(plan.steps().get(2).detail()).startsWith("/public -> ");
+    assertThat(plan.steps().get(3).detail()).startsWith("every URI under /public -> ");
+    assertThat(plan.steps().get(4).detail()).isEqualTo("uris /public");
+    assertThat(plan.steps().get(8).mutating()).isTrue();
     assertThat(adapter.imports).as("planning must not import").isEmpty();
   }
 
@@ -405,6 +467,7 @@ class DefaultExportImportOperationsTest {
     // ADR-0040: js-export reads the repository with the server up; the import is the one outage
     assertThat(ids(plan))
         .containsExactly(
+            "precheck.archive-checksum",
             "precheck.import.check-keystore",
             "precheck.import.locate-vendor-tools",
             "backup.pre-import-snapshot",
@@ -554,6 +617,7 @@ class DefaultExportImportOperationsTest {
 
     assertThat(ids(plan))
         .containsExactly(
+            "precheck.archive-checksum",
             "precheck.import.check-keystore",
             "precheck.import.locate-vendor-tools",
             "backup.pre-import-listing",
@@ -869,7 +933,7 @@ class DefaultExportImportOperationsTest {
                     "8.2.0",
                     Optional.empty(),
                     f,
-                    "0000",
+                    EximFixture.sha256(archive),
                     ExportImportStrategy.Kind.REST));
 
     assertThat(DefaultExportImportOperations.newContentUris(of.apply(repository), Optional.empty()))
@@ -953,11 +1017,11 @@ class DefaultExportImportOperationsTest {
     assertThat(plan.summary().resourcesTouched())
         .containsExactly("/organizations/org_1", "/public/reports");
     // issue #100: the listing names the same folders, then the export step follows
-    assertThat(plan.steps().get(2).detail())
+    assertThat(plan.steps().get(3).detail())
         .startsWith("every URI under ")
         .contains("/organizations/org_1")
         .contains("/public/reports");
-    assertThat(plan.steps().get(3).detail())
+    assertThat(plan.steps().get(4).detail())
         .startsWith("uris ")
         .contains("/organizations/org_1")
         .contains("/public/reports");

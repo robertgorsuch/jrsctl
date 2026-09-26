@@ -97,7 +97,7 @@ class VendorImportRunTest {
                 false,
                 false,
                 false),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.VENDOR_CLI));
   }
 
