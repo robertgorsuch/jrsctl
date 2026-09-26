@@ -428,7 +428,7 @@ Restores the point-B backups of an earlier upgrade run: `stop-service`, `restore
 - **Mutates:** the webapp and `buildomatic/` trees (replaced from the archives), the configuration files and the keystore (overwritten from the backups), the service state; with `--restore-database`, the repository database (dropped, initialised and reloaded from the export). Without the flag the database is never touched. Each archive is unpacked first into a staging directory beside the tree it replaces, and beside `webapps/` for the webapp (`<tomcatDir>/.jrsctl-restore-<webapp>`), so a Tomcat started after a crash never deploys it.
 - **Rollback:** the replaced webapp and buildomatic trees are moved to `runs/<rollbackRunId>/aside/` and put back if the rollback itself has to be compensated; the configuration and keystore files being overwritten are snapshotted under the rollback run first. Without `--restore-database` the rollback is **files only**: after a `samedb` upgrade restore the database from your own backup before running this (the schema was migrated in place; ADR-0012); after a `newdb` upgrade re-run with `--restore-database`, or restore it yourself, and the plan names the point-B export and the flag.
 - **Exit codes:** 0; **2** the run id is not an upgrade run, its snapshot set is missing, or `--restore-database` was given for a run whose vendor script never started; **6** `--restore-database` for a samedb run; **3**, **4**, **5**, **8**, **9** as for every mutating command.
-- **Flags:** `<runId>` — the upgrade run from `runs list`; `--to-point B|C` (required) — the rollback point, both restore the point-B artefacts; `--restore-database` — newdb only: rebuild the old repository database from the point-B export with the restored buildomatic; `--plan`, `--yes`, `--json` — as for every mutating command.
+- **Flags:** `<runId>` — the upgrade run from `runs list`, or part of it (a part matching several runs exits 1); `--to-point B|C` (required) — the rollback point, both restore the point-B artefacts; `--restore-database` — newdb only: rebuild the old repository database from the point-B export with the restored buildomatic; `--plan`, `--yes`, `--json` — as for every mutating command.
 
 ### `jrsctl customizations register <path> [--original <file>] [--json]`
 
@@ -486,14 +486,16 @@ Prints a unified diff between the registered copy of a customised file and the f
 - **Exit codes:** 0 when the file still matches its registered copy; **1** when it differs; **2** when the path is not registered.
 - **Flags:** `<path>` — the registered file; `--json` — `{path, originalSha256, registeredSha256, currentSha256, same, diff}`.
 
-### `jrsctl runs list [--json] [--limit <n>]`
+### `jrsctl runs list [--json] [--limit <n>] [--status <status>]... [--operation <name>] [--since <when>]`
 
-Runs, most recent first: run id, operation, started, duration, outcome (terminal state and exit code, or `PENDING` for a run that needs recovery).
+Runs, most recent first: run id, operation, started, duration, outcome (terminal state and exit code, or `PENDING` for a run that needs recovery). The filters apply before `--limit`, so `--status failed --limit 5` is the five most recent failed runs.
+
+**Naming a run.** Every command that takes a run id (`runs show`, `runs recover`, `runs support-bundle`, `upgrade rollback`) also accepts part of it (#186): the end of the id (`ab12` for `r-20260926-153012-ab12`) or its start, with or without `r-` (`20260926-1530`). The full id is printed when a part was given. A part that matches more than one run is refused with exit 1 and the matching ids; give more of the id.
 
 - **Mutates:** nothing; read-only.
 - **Rollback:** not applicable.
-- **Exit codes:** 0.
-- **Flags:** `--limit <n>` — maximum rows (default 50); `--json` — the rows as a JSON array.
+- **Exit codes:** 0; **1** when a filter value is not understood.
+- **Flags:** `--limit <n>` — maximum rows (default 50); `--status <status>` — only runs that ended as `succeeded`, `failed`, `rolled-back`, `cancelled`, `precheck-failed`, or are `pending`; repeat it or separate values with commas; `--operation <name>` — only that operation or the ones under it (`hotfix` covers `hotfix.apply` and `hotfix.rollback`); `--since <when>` — only runs started at or after a date (`2026-09-20`, midnight UTC), an instant (`2026-09-20T08:00:00Z`) or an age (`7d`, `12h`, `30m`); `--json` — the rows as a JSON array, filtered the same way.
 
 ### `jrsctl runs show <id> [--json]`
 
@@ -501,8 +503,8 @@ One run: the plan summary it was started from (operation, target, files, service
 
 - **Mutates:** nothing; read-only.
 - **Rollback:** not applicable.
-- **Exit codes:** 0; **2** when the id is unknown.
-- **Flags:** `<id>` — the run id from `runs list`; `--json` — the run document (the one the support bundle carries as `run.json`).
+- **Exit codes:** 0; **1** when part of an id matches several runs; **2** when the id is unknown.
+- **Flags:** `<id>` — the run id from `runs list`, or part of it (see "Naming a run" under `runs list`); `--json` — the run document (the one the support bundle carries as `run.json`).
 
 ### `jrsctl runs support-bundle <id> [--out <zip>] [--json]`
 
@@ -510,8 +512,8 @@ Writes one run's support bundle as a zip: `run.json` (the `runs show --json` doc
 
 - **Mutates:** only the zip it writes; refuses to overwrite an existing file.
 - **Rollback:** not applicable.
-- **Exit codes:** 0; **2** when the id is unknown or the output file exists.
-- **Flags:** `<id>` — from `runs list`; `--out <zip>` — default `<id>-support-bundle.zip` in the current directory, or in the jrsctl home when the current directory is inside the unpacked distribution, which jrsctl never writes to; the full path is printed; `--json` — `{runId, path, entries, bytes}`.
+- **Exit codes:** 0; **1** when part of an id matches several runs; **2** when the id is unknown or the output file exists.
+- **Flags:** `<id>` — from `runs list`, or part of it; `--out <zip>` — default `<id>-support-bundle.zip` in the current directory, or in the jrsctl home when the current directory is inside the unpacked distribution, which jrsctl never writes to; the full path is printed; `--json` — `{runId, path, entries, bytes}`.
 
 ### `jrsctl runs recover <id> --resume | --rollback [--yes] [--json]`
 
@@ -520,7 +522,7 @@ For a run that never reached a terminal state (crash, `kill -9`, power loss). Th
 - **Mutates:** whatever the interrupted plan mutates. `--resume` re-runs the precheck of the interrupted step and re-executes it (steps are idempotent, so a step that half-finished completes without duplicating its effect), then continues to the end. `--rollback` compensates every succeeded step in reverse.
 - **Rollback:** with `--resume`, a failure later in the plan is handled as in the original run; if the interrupted step's precheck fails only `--rollback` is offered (exit 2, nothing touched), and a run that already began rolling back cannot be resumed. `--rollback` ends the run as `ROLLED_BACK`; a compensation that fails leaves the run `ROLLBACK_INCOMPLETE` with the backup paths printed.
 - **Exit codes:** `--resume`: 0 when the plan completed, **2** when the precheck refused, **3**/**4** as for the original run; `--rollback`: **3** (rolled back cleanly, the code every rolled-back run carries), **4** when a compensation failed; **5** cancelled; **9** another process holds the lock.
-- **Flags:** `<id>` — the pending run id (printed by the exit-8 message); `--resume` — continue from the interrupted step; `--rollback` — undo the run; exactly one of the two is required; `--yes`, `--json` — as for every mutating command.
+- **Flags:** `<id>` — the pending run id (printed by the exit-8 message), or part of it (a part matching several runs exits 1); `--resume` — continue from the interrupted step; `--rollback` — undo the run; exactly one of the two is required; `--yes`, `--json` — as for every mutating command.
 
 ### `jrsctl runs prune [--dry-run] [--json]`
 
