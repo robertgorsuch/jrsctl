@@ -194,7 +194,7 @@ class HotfixStepIdempotencyTest {
         HotfixFixture reference = HotfixFixture.create(tmp.resolve("reference"))) {
       Plan plan = webInf(f);
       Context ctx = start(f, plan, "r-partial");
-      Idempotency.runUpTo(plan, ctx, "stage-files");
+      Idempotency.runUpTo(plan, ctx, "stop-service");
       // the first file landed and its older sibling was deleted, then the process died
       HotfixFixture.write(f.target(HotfixFixture.FOO), HotfixFixture.NEW_FOO);
       Files.delete(f.target(HotfixFixture.FOO_OLDER));
@@ -213,6 +213,44 @@ class HotfixStepIdempotencyTest {
   }
 
   /**
+   * Issue #184: staging now runs before the stop, so a run left pending by an older jrsctl, which
+   * stopped first and crashed before staging, resumes at the swap with nothing staged. The swap's
+   * precheck refuses, which leaves only rollback.
+   */
+  @Test
+  void should_refuse_the_swap_when_the_payload_was_never_staged() throws IOException {
+    try (HotfixFixture f = HotfixFixture.create(tmp)) {
+      Plan plan = webInf(f);
+      Context ctx = start(f, plan, "r-unstaged");
+      Idempotency.runUpTo(plan, ctx, "snapshot");
+
+      CheckResult pre = Idempotency.step(plan, "atomic-swap").precheck(ctx);
+
+      assertThat(pre.failed()).isTrue();
+      assertThat(((CheckResult.Fail) pre).message())
+          .contains("not staged")
+          .contains(Path.of(HotfixFixture.FOO).getFileName().toString());
+    }
+  }
+
+  /** A swap interrupted part-way has already moved some staged files into place. */
+  @Test
+  void should_pass_the_swap_precheck_when_a_file_already_landed() throws IOException {
+    try (HotfixFixture f = HotfixFixture.create(tmp)) {
+      Plan plan = webInf(f);
+      Context ctx = start(f, plan, "r-landed");
+      Idempotency.runUpTo(plan, ctx, "stop-service");
+      Path staged = ctx.home().stagingDir("r-landed").resolve(HotfixFixture.FOO);
+      HotfixFixture.write(f.target(HotfixFixture.FOO), HotfixFixture.NEW_FOO);
+      Files.delete(staged);
+
+      CheckResult pre = Idempotency.step(plan, "atomic-swap").precheck(ctx);
+
+      assertThat(pre.failed()).as(pre.toString()).isFalse();
+    }
+  }
+
+  /**
    * Assessment item O4: the swap had no postcheck, so a target that changed under it (or a payload
    * deleted by a sibling rule) was recorded as installed. The postcheck re-hashes every landed file
    * and confirms every deletion.
@@ -222,7 +260,7 @@ class HotfixStepIdempotencyTest {
     try (HotfixFixture f = HotfixFixture.create(tmp)) {
       Plan plan = webInf(f);
       Context ctx = start(f, plan, "r-post");
-      Idempotency.runUpTo(plan, ctx, "stage-files");
+      Idempotency.runUpTo(plan, ctx, "stop-service");
       Step swap = Idempotency.step(plan, "atomic-swap");
       Idempotency.executeOk(swap, ctx);
       assertThat(swap.postcheck(ctx).failed()).as("clean swap passes its postcheck").isFalse();

@@ -51,6 +51,27 @@ class HotfixApplyTest {
     }
   }
 
+  /**
+   * Issue #184: staging needs no outage, so it runs before the stop; when the stop then fails, the
+   * phase rollback removes the staging tree and the server was never down.
+   */
+  @Test
+  void should_remove_the_staging_tree_and_keep_the_server_up_when_the_stop_fails()
+      throws IOException {
+    try (HotfixFixture f = HotfixFixture.create(tmp)) {
+      Plan plan = f.ops().planApply(f.buildWebInf(), SIGNED);
+      f.fake.platform.controller.stopFails = true;
+
+      RunOutcome outcome = f.run(plan, "r-stop-fails");
+
+      assertThat(outcome).isInstanceOf(RunOutcome.RolledBack.class);
+      assertThat(f.ctx("r-stop-fails").home().stagingDir("r-stop-fails")).doesNotExist();
+      assertThat(f.fake.platform.serviceState)
+          .isEqualTo(com.jaspersoft.jrsctl.core.platform.ServiceController.State.RUNNING);
+      assertThat(Files.readString(f.target(HotfixFixture.FOO))).isNotEqualTo(HotfixFixture.NEW_FOO);
+    }
+  }
+
   @Test
   void should_list_expected_steps_and_phases_when_restart_required() throws IOException {
     try (HotfixFixture f = HotfixFixture.create(tmp)) {
@@ -62,8 +83,8 @@ class HotfixApplyTest {
               "preflight",
               "run-prechecks",
               "snapshot",
-              "stop-service",
               "stage-files",
+              "stop-service",
               "atomic-swap",
               "start-service",
               "wait-for-server",
@@ -72,8 +93,8 @@ class HotfixApplyTest {
       assertThat(plan.byPhase().keySet()).containsExactly("verify", "backup", "apply", "record");
       assertThat(plan.byPhase().get("apply").stream().map(Step::id))
           .containsExactly(
-              "stop-service",
               "stage-files",
+              "stop-service",
               "atomic-swap",
               "start-service",
               "wait-for-server",
