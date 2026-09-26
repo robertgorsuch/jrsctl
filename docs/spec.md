@@ -808,7 +808,7 @@ Assumptions the agent should proceed with unless overridden:
 Open questions for PM/engineering (record answers as ADRs):
 
 - Q1: Minimum JRS version to support in v1 (spec assumes 7.1).
-- Q2: Whether JBoss/WildFly or WebSphere deployments must be supported in v1 (spec assumes Tomcat only; abstraction allows extension).
+- Q2: Whether JBoss/WildFly or WebSphere deployments must be supported in v1 (spec assumes Tomcat only; abstraction allows extension). Resolved by ADR-0043: Apache Tomcat only, and not from inside a container; `init` refuses both with exit 6 and `doctor`'s `deployment` item fails on them (#118).
 - Q3: Whether the console should support multiple registered servers in v1 (spec assumes one server per `JRSCTL_HOME`). Resolved by ADR-0038: no console.
 - Q4: Publisher key custody and rotation process.
 - Q5: Whether `js-ant` accepts a `default_master.properties` path outside the buildomatic directory. Until answered, §7.4 writes into the invoked buildomatic directory with snapshot/restore.

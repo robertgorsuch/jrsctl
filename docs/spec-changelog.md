@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-26 (issue #118, Tomcat only and not in containers; ADR-0043)
+
+- §19 Q2 resolved: jrsctl manages JasperReports Server on Apache Tomcat only. §12.0: `init` refuses with exit 6 when jrsctl runs inside a container (Linux markers of Docker, Podman, Kubernetes) or `--install-dir` names a JBoss EAP or WildFly home; `--remote` is never refused. §12.1: new doctor item `deployment` on the same conditions, which alone exits 6 like `compat`; `layout` is skipped on a JBoss/WildFly home.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #187, a pager for docs and --explain)
 
 - §14: `docs <name>` and `--explain` page plain text taller than the terminal a screen at a time (built-in, on the shared JNI JLine terminal); piped, Markdown and JSON output are never paged. New global flag `--no-pager`, also accepted by `docs`.
