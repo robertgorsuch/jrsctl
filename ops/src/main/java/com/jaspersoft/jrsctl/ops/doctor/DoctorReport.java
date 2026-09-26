@@ -7,12 +7,16 @@ import java.util.Objects;
 
 /**
  * The {@code doctor} result (spec §12.1, §18). Invariants: items are sorted FAIL, WARN, PASS, SKIP;
- * {@code exitCode} is 0 when nothing failed, 6 when the only failures are compat-matrix failures,
- * otherwise 2; nothing was mutated in producing it.
+ * {@code exitCode} is 0 when nothing failed, 6 when the only failures are compat-matrix or
+ * unsupported-deployment failures (ADR-0043), otherwise 2; nothing was mutated in producing it.
  */
 public record DoctorReport(List<ReportItem> items, Report.Counts counts, int exitCode) {
 
   public static final String COMPAT = "compat";
+
+  /** The deployment item (ADR-0043); like compat, its failure alone means exit 6. */
+  public static final String DEPLOYMENT = "deployment";
+
   public static final int EXIT_OK = 0;
   public static final int EXIT_PRECHECK = 2;
   public static final int EXIT_UNSUPPORTED = 6;
@@ -34,7 +38,7 @@ public record DoctorReport(List<ReportItem> items, Report.Counts counts, int exi
     for (ReportItem item : items) {
       if (item.status() == ReportItem.Status.FAIL) {
         anyFail = true;
-        if (!item.name().equals(COMPAT)) {
+        if (!item.name().equals(COMPAT) && !item.name().equals(DEPLOYMENT)) {
           onlyCompat = false;
         }
       }

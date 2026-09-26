@@ -78,6 +78,8 @@ final class Cli {
   Running start(String... args) throws IOException {
     List<String> cmd = new ArrayList<>();
     cmd.add(java);
+    // ADR-0043: acceptance must pass when the build itself runs in a container
+    cmd.add("-Djrsctl.containerCheck=false");
     cmd.add("-jar");
     cmd.add(jar.toString());
     cmd.addAll(List.of(args));

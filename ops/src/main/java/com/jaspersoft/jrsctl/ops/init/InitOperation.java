@@ -14,6 +14,7 @@ import com.jaspersoft.jrsctl.jrs.vendor.BuildomaticLocator;
 import com.jaspersoft.jrsctl.jrs.vendor.BuildomaticResolution;
 import com.jaspersoft.jrsctl.ops.JrsVersion;
 import com.jaspersoft.jrsctl.ops.Services;
+import com.jaspersoft.jrsctl.ops.UnsupportedDeployment;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileAlreadyExistsException;
@@ -96,6 +97,21 @@ public final class InitOperation {
   /** Detects the installation; {@code installDirHint} is tried before the platform candidates. */
   public InitReport detect(Optional<Path> installDirHint) {
     return detect(installDirHint, Optional.empty());
+  }
+
+  /**
+   * Why {@code init} must refuse this host before detecting anything (ADR-0043): jrsctl runs inside
+   * a container, or {@code --install-dir} names a JBoss EAP or WildFly home with no Tomcat layout.
+   * Not consulted for {@code --remote}.
+   */
+  public Optional<UnsupportedDeployment.Refusal> unsupported(
+      Optional<Path> installDirHint, UnsupportedDeployment.Probe probe) {
+    return UnsupportedDeployment.container(probe)
+        .or(
+            () ->
+                installDirHint
+                    .filter(dir -> services.platform().detectTomcat(dir).isEmpty())
+                    .flatMap(UnsupportedDeployment::jboss));
   }
 
   /**
