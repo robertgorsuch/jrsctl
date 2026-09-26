@@ -724,6 +724,14 @@ class Phase5UpgradeTest {
         .contains("Rollback restores files only")
         .contains("re-run with --restore-database");
     assertThat(webapp.resolve(MARKER)).exists();
+    // issue #186: the trailing hex of the run id names the same run
+    String shortId = upgradeRunId.substring(upgradeRunId.lastIndexOf('-') + 1);
+    assertThat(
+            jrsctl("upgrade", "rollback", shortId, "--to-point", "B", "--plan")
+                .assertExit(0)
+                .stdout())
+        .contains("Plan  upgrade.rollback")
+        .contains("restore the webapp");
 
     // ADR-0029: the newdb database is rebuilt from the point-B export with the restored buildomatic
     Cli.Result withDatabase =

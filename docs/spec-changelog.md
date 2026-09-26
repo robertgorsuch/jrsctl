@@ -1,5 +1,10 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-26 (issue #186, run filters and short run ids)
+
+- §6.6: every command that takes a run id (`runs show`, `runs recover`, `runs support-bundle`, `upgrade rollback`) accepts the end or the start of one id; several matches exit 1 with the candidates. `runs list` gains `--status`, `--operation` and `--since`, applied before `--limit`.
+- §12.4: the default `--out` of `runs support-bundle` is checked after the run lookup, since its name needs the full id; a given `--out` is still refused before the state store is read.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #185, import checks the sidecar's SHA-256)
 
 - §9.3: import's first precheck, `precheck.archive-checksum`, compares the archive's SHA-256 with the one its sidecar recorded at export and fails before the snapshot, the keystore check or any service stop (exit 2); the plan summary warns when the two already differ at planning time. An archive without a sidecar gets no such step.

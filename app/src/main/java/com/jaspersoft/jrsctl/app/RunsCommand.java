@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -137,7 +138,10 @@ final class RunsCommand implements Runnable {
     }
   }
 
-  /** {@code jrsctl runs list [--json] [--limit N]}. */
+  /**
+   * {@code jrsctl runs list [--json] [--limit N] [--status S]... [--operation OP] [--since WHEN]}:
+   * the filters apply before the limit (issue #186).
+   */
   @Command(
       name = "list",
       mixinStandardHelpOptions = true,
@@ -151,13 +155,46 @@ final class RunsCommand implements Runnable {
     @Option(names = "--limit", paramLabel = "<n>", description = "Maximum rows (default 50).")
     int limit = 50;
 
+    @Option(
+        names = "--status",
+        paramLabel = "<status>",
+        split = ",",
+        converter = RunFilter.StatusConverter.class,
+        description =
+            "Only runs that ended this way: succeeded, failed, rolled-back, cancelled,"
+                + " precheck-failed or pending. Repeat or separate with commas.")
+    List<RunFilter.Status> statuses = new ArrayList<>();
+
+    @Option(
+        names = "--operation",
+        paramLabel = "<name>",
+        description = "Only this operation or those under it: hotfix, hotfix.apply, import, ...")
+    Optional<String> operation = Optional.empty();
+
+    @Option(
+        names = "--since",
+        paramLabel = "<when>",
+        converter = RunFilter.SinceConverter.class,
+        description =
+            "Only runs started at or after a date (2026-09-20, UTC), an instant, or an age"
+                + " (7d, 12h, 30m).")
+    Optional<RunFilter.Since> since = Optional.empty();
+
     @Override
     public Integer call() {
       PrintWriter out = spec.commandLine().getOut();
       Redactor redactor = Redactor.global();
       try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
         Services services = boot.services();
-        List<RunRecord> runs = services.stateStore().get().runs(Math.max(1, limit));
+        RunFilter filter = new RunFilter(Set.copyOf(statuses), operation, since);
+        int max = Math.max(1, limit);
+        List<RunRecord> runs =
+            filter.empty()
+                ? services.stateStore().get().runs(max)
+                : services.stateStore().get().runs(Integer.MAX_VALUE).stream()
+                    .filter(r -> filter.matches(r, services.clock()))
+                    .limit(max)
+                    .toList();
         if (global.json()) {
           List<Map<String, Object>> rows = new ArrayList<>();
           for (RunRecord r : runs) {
@@ -219,17 +256,12 @@ final class RunsCommand implements Runnable {
       try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
         Services services = boot.services();
         StateStore store = services.stateStore().get();
-        Optional<RunRecord> found = store.run(runId);
-        if (found.isEmpty()) {
-          return ExitCodes.fail(
-              out,
-              err,
-              global.json(),
-              ExitCodes.PRECHECK_FAILED,
-              "unknown run " + runId,
-              Optional.of("see `jrsctl runs list`"));
+        RunRef.Lookup lookup = RunRef.lookup(store, runId, out, err, global.json());
+        if (lookup instanceof RunRef.Lookup.Exit exit) {
+          return exit.code();
         }
-        RunRecord run = found.get();
+        RunRecord run = ((RunRef.Lookup.Run) lookup).run();
+        runId = run.runId();
         Optional<StoredPlan> plan = run.planId().flatMap(store::loadPlan);
         Optional<JsonNode> planTree = plan.map(p -> parse(p.planJson()));
         List<Transition> transitions = store.transitions(runId);
@@ -331,17 +363,12 @@ final class RunsCommand implements Runnable {
       try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
         Services services = boot.services();
         StateStore store = services.stateStore().get();
-        Optional<RunRecord> found = store.run(runId);
-        if (found.isEmpty()) {
-          return ExitCodes.fail(
-              out,
-              err,
-              global.json(),
-              ExitCodes.PRECHECK_FAILED,
-              "unknown run " + runId,
-              Optional.of("see `jrsctl runs list`"));
+        RunRef.Lookup lookup = RunRef.lookup(store, runId, out, err, global.json());
+        if (lookup instanceof RunRef.Lookup.Exit exit) {
+          return exit.code();
         }
-        RunRecord run = found.get();
+        RunRecord run = ((RunRef.Lookup.Run) lookup).run();
+        runId = run.runId();
         if (!run.pending()) {
           return ExitCodes.fail(
               out,
@@ -521,62 +548,43 @@ final class RunsCommand implements Runnable {
       PrintWriter o = spec.commandLine().getOut();
       PrintWriter err = spec.commandLine().getErr();
       Redactor redactor = Redactor.global();
-      Path target =
-          (out != null
-                  ? out
-                  : defaultOut(
-                      runId,
-                      Path.of("").toAbsolutePath(),
-                      distributionRoot(),
-                      global
-                          .home()
-                          .map(h -> h.toAbsolutePath().normalize())
-                          .orElseGet(() -> LogFile.home(new String[0], Env.vars()))))
-              .toAbsolutePath();
-      // every refusal below must happen before Bootstrap.open: a typo in --out must not pay for a
-      // doctor run, and must not touch the state store (review finding 2)
-      if (Files.isDirectory(target)) {
-        return ExitCodes.fail(
-            o,
-            err,
-            global.json(),
-            ExitCodes.PRECHECK_FAILED,
-            target + " is a directory",
-            Optional.of("name a file"));
-      }
-      if (Files.exists(target)) {
-        return ExitCodes.fail(
-            o,
-            err,
-            global.json(),
-            ExitCodes.PRECHECK_FAILED,
-            target + " already exists",
-            Optional.of("choose another --out or move the old bundle"));
-      }
-      Path parent = target.getParent();
-      if (parent != null && !Files.isDirectory(parent)) {
-        return ExitCodes.fail(
-            o,
-            err,
-            global.json(),
-            ExitCodes.PRECHECK_FAILED,
-            parent + " is not a directory",
-            Optional.of("create it or choose another --out"));
+      // every refusal of a given --out happens before Bootstrap.open: a typo in --out must not
+      // pay for a doctor run, and must not touch the state store (review finding 2)
+      if (out != null) {
+        Optional<Integer> refused = refuseTarget(out.toAbsolutePath(), o, err);
+        if (refused.isPresent()) {
+          return refused.get();
+        }
       }
       try (Bootstrap boot = Bootstrap.open(global, Env.vars(), Clock.systemUTC())) {
         Services services = boot.services();
-        Optional<RunRecord> found = services.stateStore().get().run(runId);
-        if (found.isEmpty()) {
-          return ExitCodes.fail(
-              o,
-              err,
-              global.json(),
-              ExitCodes.PRECHECK_FAILED,
-              "unknown run " + runId,
-              Optional.of("see `jrsctl runs list`"));
+        RunRef.Lookup lookup =
+            RunRef.lookup(services.stateStore().get(), runId, o, err, global.json());
+        if (lookup instanceof RunRef.Lookup.Exit exit) {
+          return exit.code();
+        }
+        RunRecord run = ((RunRef.Lookup.Run) lookup).run();
+        Path target =
+            (out != null
+                    ? out
+                    : defaultOut(
+                        run.runId(),
+                        Path.of("").toAbsolutePath(),
+                        distributionRoot(),
+                        global
+                            .home()
+                            .map(h -> h.toAbsolutePath().normalize())
+                            .orElseGet(() -> LogFile.home(new String[0], Env.vars()))))
+                .toAbsolutePath();
+        if (out == null) {
+          // the default name needs the full run id, so its checks follow the lookup
+          Optional<Integer> refused = refuseTarget(target, o, err);
+          if (refused.isPresent()) {
+            return refused.get();
+          }
         }
         SupportBundle bundle = new SupportBundle(services);
-        SupportBundle.Prepared prepared = bundle.prepare(found.get()); // everything that can fail
+        SupportBundle.Prepared prepared = bundle.prepare(run); // everything that can fail
         try {
           try (OutputStream zip = Files.newOutputStream(target, StandardOpenOption.CREATE_NEW)) {
             bundle.write(prepared, zip);
@@ -611,7 +619,7 @@ final class RunsCommand implements Runnable {
         }
         if (global.json()) {
           Map<String, Object> doc = new LinkedHashMap<>();
-          doc.put("runId", runId);
+          doc.put("runId", run.runId());
           doc.put("path", target.toString());
           doc.put("entries", entries);
           doc.put("bytes", Files.size(target));
@@ -624,6 +632,42 @@ final class RunsCommand implements Runnable {
         o.flush();
         return ExitCodes.SUCCESS;
       }
+    }
+
+    /** The exit code when {@code target} cannot be written to, empty when it can. */
+    private Optional<Integer> refuseTarget(Path target, PrintWriter o, PrintWriter err) {
+      if (Files.isDirectory(target)) {
+        return Optional.of(
+            ExitCodes.fail(
+                o,
+                err,
+                global.json(),
+                ExitCodes.PRECHECK_FAILED,
+                target + " is a directory",
+                Optional.of("name a file")));
+      }
+      if (Files.exists(target)) {
+        return Optional.of(
+            ExitCodes.fail(
+                o,
+                err,
+                global.json(),
+                ExitCodes.PRECHECK_FAILED,
+                target + " already exists",
+                Optional.of("choose another --out or move the old bundle")));
+      }
+      Path parent = target.getParent();
+      if (parent != null && !Files.isDirectory(parent)) {
+        return Optional.of(
+            ExitCodes.fail(
+                o,
+                err,
+                global.json(),
+                ExitCodes.PRECHECK_FAILED,
+                parent + " is not a directory",
+                Optional.of("create it or choose another --out")));
+      }
+      return Optional.empty();
     }
   }
 

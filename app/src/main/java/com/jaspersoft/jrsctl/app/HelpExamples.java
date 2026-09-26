@@ -328,11 +328,16 @@ final class HelpExamples {
         "runs list",
         List.of(
             new Example("Show recent runs and how they ended", "jrsctl runs list"),
-            new Example("Only the last ten", "jrsctl runs list --limit 10")));
+            new Example("Only the last ten", "jrsctl runs list --limit 10"),
+            new Example(
+                "Failed or rolled-back runs", "jrsctl runs list --status failed,rolled-back"),
+            new Example(
+                "Hotfix runs of the last week", "jrsctl runs list --operation hotfix --since 7d")));
     m.put(
         "runs show",
         List.of(
             new Example("Show every step of one run", "jrsctl runs show <run-id>"),
+            new Example("The same, naming the run by the end of its id", "jrsctl runs show ab12"),
             new Example(
                 "The same as JSON, for a support ticket", "jrsctl runs show <run-id> --json")));
     m.put(

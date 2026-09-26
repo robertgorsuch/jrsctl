@@ -110,6 +110,112 @@ class RunsCommandTest {
         runId, "validate-manifest", "verify", Optional.of("PENDING"), "RUNNING", Optional.empty());
   }
 
+  private static final String OLD_APPLY = "r-20260901-100000-ab12";
+  private static final String FAILED_IMPORT = "r-20260910-100000-cd34";
+  private static final String ROLLED_BACK = "r-20260920-100000-ef56";
+  private static final String PENDING_UPGRADE = "r-20260921-100000-ab99";
+
+  /** Four runs of different operations, outcomes and ages (issue #186). */
+  private void seedVariedRuns() {
+    try (StateStore store = open()) {
+      store.recordRunStart(
+          OLD_APPLY, "hotfix.apply", Optional.empty(), Instant.parse("2026-09-01T10:00:00Z"));
+      store.recordRunEnd(
+          OLD_APPLY, Instant.parse("2026-09-01T10:01:00Z"), TerminalState.SUCCEEDED, 0);
+      store.recordRunStart(
+          FAILED_IMPORT, "import", Optional.empty(), Instant.parse("2026-09-10T10:00:00Z"));
+      store.recordRunEnd(
+          FAILED_IMPORT, Instant.parse("2026-09-10T10:01:00Z"), TerminalState.FAILED, 4);
+      store.recordRunStart(
+          ROLLED_BACK, "hotfix.rollback", Optional.empty(), Instant.parse("2026-09-20T10:00:00Z"));
+      store.recordRunEnd(
+          ROLLED_BACK, Instant.parse("2026-09-20T10:01:00Z"), TerminalState.ROLLED_BACK, 3);
+      store.recordRunStart(
+          PENDING_UPGRADE, "upgrade", Optional.empty(), Instant.parse("2026-09-21T10:00:00Z"));
+    }
+  }
+
+  private List<String> listed(String... filters) throws Exception {
+    List<String> args = new java.util.ArrayList<>(List.of("runs", "list", "--json", "--home"));
+    args.add(home.toString());
+    args.addAll(List.of(filters));
+    InitCommandTest.Run run = InitCommandTest.run(args.toArray(String[]::new));
+    assertThat(run.code()).as(run.err()).isZero();
+    List<String> ids = new java.util.ArrayList<>();
+    Json.mapper().readTree(run.out()).forEach(r -> ids.add(r.get("runId").asText()));
+    return ids;
+  }
+
+  @Test
+  void should_filter_runs_by_status_when_status_is_given() throws Exception {
+    seedVariedRuns();
+
+    assertThat(listed("--status", "failed")).containsExactly(FAILED_IMPORT);
+    assertThat(listed("--status", "rolled-back,pending"))
+        .containsExactly(PENDING_UPGRADE, ROLLED_BACK);
+    assertThat(listed("--status", "succeeded", "--status", "failed"))
+        .containsExactly(FAILED_IMPORT, OLD_APPLY);
+  }
+
+  @Test
+  void should_filter_runs_by_operation_prefix_when_operation_is_given() throws Exception {
+    seedVariedRuns();
+
+    assertThat(listed("--operation", "hotfix")).containsExactly(ROLLED_BACK, OLD_APPLY);
+    assertThat(listed("--operation", "hotfix.apply")).containsExactly(OLD_APPLY);
+    assertThat(listed("--operation", "hot")).as("a dotted prefix, not any prefix").isEmpty();
+  }
+
+  @Test
+  void should_filter_by_start_time_before_applying_the_limit_when_since_is_given()
+      throws Exception {
+    seedVariedRuns();
+
+    assertThat(listed("--since", "2026-09-15")).containsExactly(PENDING_UPGRADE, ROLLED_BACK);
+    assertThat(listed("--since", "2026-09-15T00:00:00Z", "--limit", "1"))
+        .containsExactly(PENDING_UPGRADE);
+    assertThat(listed("--since", "36500d")).hasSize(4);
+    assertThat(listed("--operation", "hotfix", "--limit", "1")).containsExactly(ROLLED_BACK);
+  }
+
+  @Test
+  void should_exit_1_when_a_filter_value_is_not_understood() {
+    InitCommandTest.Run since =
+        InitCommandTest.run("runs", "list", "--since", "yesterday", "--home", home.toString());
+    InitCommandTest.Run status =
+        InitCommandTest.run("runs", "list", "--status", "done", "--home", home.toString());
+
+    assertThat(since.code()).isEqualTo(ExitCodes.USAGE);
+    assertThat(since.err()).contains("yesterday");
+    assertThat(status.code()).isEqualTo(ExitCodes.USAGE);
+    assertThat(status.err()).contains("done").contains("rolled-back");
+  }
+
+  @Test
+  void should_show_a_run_named_by_part_of_its_id() throws Exception {
+    seedVariedRuns();
+
+    InitCommandTest.Run run =
+        InitCommandTest.run("runs", "show", "ef56", "--home", home.toString(), "--no-color");
+
+    assertThat(run.code()).as(run.err()).isZero();
+    assertThat(run.out()).contains("Run  " + ROLLED_BACK);
+  }
+
+  @Test
+  void should_exit_1_and_list_the_candidates_when_part_of_an_id_matches_several_runs() {
+    seedVariedRuns();
+
+    InitCommandTest.Run show =
+        InitCommandTest.run("runs", "show", "202609", "--home", home.toString());
+    InitCommandTest.Run bundle =
+        InitCommandTest.run("runs", "support-bundle", "2026092", "--home", home.toString());
+
+    assertThat(show.code()).isEqualTo(ExitCodes.USAGE);
+    assertThat(show.err()).contains("matches 4 runs").contains(OLD_APPLY).contains(PENDING_UPGRADE);
+    assertThat(bundle.code()).isEqualTo(ExitCodes.USAGE);
+  }
+
   @Test
   void should_list_runs_with_duration_and_outcome_when_runs_recorded() throws Exception {
     try (StateStore store = open()) {

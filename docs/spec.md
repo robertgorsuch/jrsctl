@@ -352,6 +352,7 @@ Rules:
 ### 6.6 Resume and recovery
 
 - `jrsctl runs recover <runId> --resume|--rollback`.
+- Every command that takes a run id accepts part of it (#186): an exact id wins, otherwise the text must be the end of exactly one id or its start (with or without `r-`); several matches exit 1 listing them, none is the unknown-run refusal. Run ids keep their format. `runs list` filters by `--status`, `--operation` (itself or a dotted prefix) and `--since` (date, instant or age) before `--limit`.
 - `jrsctl runs support-bundle <id> [--out <zip>]` — the full contract is §12.4.
 - Resume re-runs the precheck of the interrupted Step and then re-executes it (idempotency guarantees convergence). If the precheck fails, only rollback is offered.
 - Rollback compensates every succeeded Step of the run in reverse, after first compensating a mutating Step the journal left `RUNNING` or `FAILED` (the process died before that Step's own compensation ran). A compensation must therefore converge from any partial state, including one where `execute` never started.
@@ -683,7 +684,7 @@ Verifies every jar in the runtime image against a build-time manifest of hashes,
 - A missing optional input (no stored plan, no vendor file at a given location) yields no entry rather than an error.
 - A write that fails partway through the archive leaves no file behind: the target is opened `CREATE_NEW`, and any exception while writing deletes the partial file before it propagates.
 - `--out` defaults to `<id>-support-bundle.zip` in the current directory.
-- Exit 2, before anything is read from the state store: the run id is unknown; `--out` already exists; `--out` names a directory; or `--out`'s parent directory does not exist.
+- Exit 2: a given `--out` that already exists, names a directory or has no parent directory is refused before anything is read from the state store; the run id is then looked up (part of an id is accepted, several matches exit 1), and the default `--out`, which needs the full id for its name, is checked after that lookup; an unknown run id is exit 2.
 
 ---
 
