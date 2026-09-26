@@ -1,6 +1,6 @@
 # ADR-0023: a full-screen terminal UI is not built for now
 
-Status: proposed, 2026-09-16. Issue #75. Awaiting a decision from the maintainers; nothing is implemented.
+Status: accepted, 2026-09-26 (proposed 2026-09-16): option A, no full-screen terminal UI. Issue #75 closed. See the amendment of 2026-09-26 for the reasons that apply to 2.x; the context below describes 1.x and is kept for the record.
 
 ## Context
 
@@ -46,3 +46,13 @@ A 1.6.0 tester asked again, meeting the trigger above, but only for line editing
 not the full-screen dashboard this ADR evaluates. That narrower spike and its result are ADR-0037:
 JLine 3 (`jline-terminal-jni`, no JNA) adopted for `Prompter.path` only. This ADR's recommendation
 (option A, no full-screen UI) is otherwise unchanged; #75 stays open.
+
+## Amendment, 2026-09-26: accepted for 2.x (#75 closed)
+
+The context above no longer holds: 2.0.0 removed the web console (ADR-0038), so the SSH tunnel it relied on is gone, and jrsctl is a terminal tool by design. The decision stands for different reasons.
+
+- **The trigger never fired.** #75 asked for this to be settled by the tester who raised it, or the next field test. The same support engineer ran two more (v1.6.0 on 2026-09-18, v2.0.0 on 2026-09-25; recorded under #36). Every interactive request was for the terminal jrsctl already has, and each is done: tab completion and cursor movement at prompts (ADR-0037), a clearer guided menu (field test 2 G1, G5 to G7; v2.1.0), a pager for long output (#187). Neither review asked for a dashboard, and the v2.1.0 list of open findings names none.
+- **What a dashboard would show is already there:** live progress while a run executes, `doctor` for health, `runs list` with filters and short run ids (#186) for history, `runs recover` for recovery, and guided mode for everything interactive.
+- **It would be a second front end.** Spec §3 keeps one engine and one front end (the CLI and guided mode), which ADR-0038 reinforced. A full-screen UI would need Lanterna (licence and Windows console support unresolved) or substantial JLine screen work, tested in the jlink image on Windows and Linux, over SSH and with `--ascii`.
+
+**What would reopen it:** a field test or customer asking for a live, full-screen view that the commands above do not give. The first step would then be JLine screens on the shared JNI terminal (`app.SystemTerminal`, ADR-0037), which settles option B's Windows provider concern without a new dependency; a new ADR would scope it.
