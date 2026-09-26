@@ -122,6 +122,20 @@ final class EximFixture implements AutoCloseable {
     return new Context(runId, services.home(), platform, new CancellationToken(), map);
   }
 
+  /** The hex SHA-256 an export's sidecar records for {@code file} (issue #185). */
+  static String sha256(Path file) {
+    try (java.io.InputStream in = java.nio.file.Files.newInputStream(file)) {
+      java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+      byte[] buffer = new byte[8192];
+      for (int n = in.read(buffer); n > 0; n = in.read(buffer)) {
+        digest.update(buffer, 0, n);
+      }
+      return java.util.HexFormat.of().formatHex(digest.digest());
+    } catch (IOException | java.security.NoSuchAlgorithmException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   RunOutcome run(Plan plan, String runId) {
     EventSink sink = events::add;
     Runner runner = new Runner(services.stateStore().get(), sink, services.clock(), Sleeper.none());

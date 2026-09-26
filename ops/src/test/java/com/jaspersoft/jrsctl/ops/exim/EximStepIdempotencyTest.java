@@ -94,6 +94,27 @@ class EximStepIdempotencyTest {
     }
   }
 
+  /** Issue #185: the checksum step decides in its precheck and changes nothing, however often. */
+  @Test
+  void should_not_mutate_when_archive_checksum_executes_twice() throws IOException {
+    EximFakeAdapter adapter = new EximFakeAdapter();
+    try (EximFixture fx = new EximFixture(tmp, () -> adapter)) {
+      Step step = new VerifyArchiveChecksum(tmp.resolve("public.zip"), "ab12", "AB12");
+      Context ctx = fx.context(EximFixture.RUN);
+
+      Idempotency.executeOk(step, ctx);
+      Idempotency.executeOk(step, ctx);
+      Idempotency.compensateOk(step, ctx);
+      Idempotency.compensateOk(step, ctx);
+
+      assertThat(step.mutating()).isFalse();
+      assertThat(step.precheck(ctx).failed()).as("hex compares without case").isFalse();
+      assertThat(adapter.exports).isEmpty();
+      assertThat(adapter.imports).isEmpty();
+      assertThat(adapter.deleted).isEmpty();
+    }
+  }
+
   /** Issue #100: the listing step reads the server and writes one file; twice is the same file. */
   @Test
   void should_not_mutate_when_pre_import_listing_executes_twice() throws IOException {
@@ -225,7 +246,7 @@ class EximStepIdempotencyTest {
                   false,
                   false,
                   false),
-              "0000",
+              EximFixture.sha256(archive),
               ExportImportStrategy.Kind.REST));
       Plan plan =
           fx.ops()

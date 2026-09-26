@@ -57,7 +57,7 @@ class ImportRollbackTest {
                 false,
                 false,
                 false),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.REST));
   }
 
@@ -252,7 +252,7 @@ class ImportRollbackTest {
                 false,
                 false,
                 false),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.REST));
     adapter.existing = Optional.of(Set.of("/public"));
     adapter.createdOnImport = Set.of("/fresh");
@@ -387,7 +387,7 @@ class ImportRollbackTest {
                 false,
                 false,
                 false),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.REST));
     Plan plan = fx.ops().planImport(options(false));
 

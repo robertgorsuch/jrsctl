@@ -108,7 +108,7 @@ class RemoteExportImportTest {
                 false,
                 false,
                 false),
-            "0000",
+            EximFixture.sha256(archive),
             ExportImportStrategy.Kind.REST));
 
     Plan plan =

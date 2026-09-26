@@ -324,6 +324,9 @@ class IdempotencyCoverageTest {
               OPS + "exim.PreImportSnapshot",
               E + "should_not_mutate_when_pre_import_snapshot_executes_twice"),
           Map.entry(
+              OPS + "exim.VerifyArchiveChecksum",
+              E + "should_not_mutate_when_archive_checksum_executes_twice"),
+          Map.entry(
               OPS + "exim.RecordRepositoryListing",
               E + "should_not_mutate_when_pre_import_listing_executes_twice"),
           Map.entry(
