@@ -292,7 +292,7 @@ Releases are also signed by the Jaspersoft publisher key. See [`docs/security.md
 
 ## For developers
 
-You do not need to build jrsctl to use it: download the release archive above. Building from source (it needs JDK 21), the project rules and how to contribute are in [`CONTRIBUTING.md`](CONTRIBUTING.md). The design is in [`docs/spec.md`](docs/spec.md).
+You do not need to build jrsctl to use it: download the release archive above. Building from source (it needs JDK 21), the project rules and how to contribute are in [`CONTRIBUTING.md`](CONTRIBUTING.md). A clone, a "Download ZIP" source archive and a root account on Linux all build: `bash scripts/mvn.sh verify` on Linux, `scripts\mvn.cmd verify` on Windows. The design is in [`docs/spec.md`](docs/spec.md).
 
 ## Licence
 
