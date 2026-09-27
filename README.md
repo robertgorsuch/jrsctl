@@ -2,6 +2,12 @@
 
 **The safe way to look after JasperReports Server.** From  Jaspersoft.
 
+> **No longer maintained.** 2.3.0 is the final release. No further fixes, security patches or new JasperReports Server versions will be added.
+>
+> - What works stays as shipped: JasperReports Server 7.1 to 10.x on Apache Tomcat, the rows of the bundled compatibility matrix (`core/src/main/resources/compat/matrix.yaml`). `doctor` fails any other version with exit 6 (`--allow-unsupported` turns that into a warning, for diagnosis only), and `upgrade` refuses a path the matrix does not list with exit 6.
+> - The bundled Java runtime will not be updated. It is the Java 21 update the 2.3.0 build used; `jrsctl selfcheck` shows it.
+> - [SECURITY.md](SECURITY.md) says how to check a download. To carry the project on, fork it (GPL-3.0-only).
+
 jrsctl checks your server's health, installs hotfixes, backs up and moves report content between servers, and upgrades the server to a new version. Before it changes anything it shows you exactly what it will do and asks you to confirm. If something fails partway, it puts things back the way they were.
 
 It comes as one download with everything it needs inside. There is nothing else to install, and it works on servers with no internet access.
