@@ -50,14 +50,14 @@ Unpack it on the server, then open a terminal in the unpacked folder:
 
 ```bash
 :: Windows (Command Prompt, run as administrator)
-tar -xf jrsctl-2.2.0-windows-x64.zip -C C:\Jaspersoft
-cd C:\Jaspersoft\jrsctl-2.2.0
+tar -xf jrsctl-2.3.0-windows-x64.zip -C C:\Jaspersoft
+cd C:\Jaspersoft\jrsctl-2.3.0
 ```
 
 ```bash
 # Linux
-tar -xzf jrsctl-2.2.0-linux-x64.tar.gz -C /opt
-cd /opt/jrsctl-2.2.0
+tar -xzf jrsctl-2.3.0-linux-x64.tar.gz -C /opt
+cd /opt/jrsctl-2.3.0
 ```
 
 > **How to type the commands.** This guide writes every command as `jrsctl …`.
@@ -289,8 +289,8 @@ The main files are `config.yaml` (the settings `init` wrote), `snapshots\` (back
 
 Each release file has a `.sha256` checksum beside it:
 
-- Windows: `certutil -hashfile jrsctl-2.2.0-windows-x64.zip SHA256`
-- Linux: `sha256sum -c jrsctl-2.2.0-linux-x64.tar.gz.sha256`
+- Windows: `certutil -hashfile jrsctl-2.3.0-windows-x64.zip SHA256`
+- Linux: `sha256sum -c jrsctl-2.3.0-linux-x64.tar.gz.sha256`
 
 Releases are also signed by the Jaspersoft publisher key. See [`docs/security.md`](docs/security.md).
 
