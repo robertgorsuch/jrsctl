@@ -1,6 +1,7 @@
 package com.jaspersoft.jrsctl.core.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,6 +52,7 @@ class DefaultHomeTest {
   @EnabledOnOs({OS.LINUX, OS.MAC})
   void should_flag_an_existing_system_home_this_user_cannot_write(@TempDir Path base)
       throws IOException {
+    assumeFalse(PermissionBypass.active(), "root writes into a read-only directory (#188)");
     Path systemHome = Files.createDirectory(base.resolve(DefaultHome.DIR));
     Files.setPosixFilePermissions(systemHome, PosixFilePermissions.fromString("r-xr-xr-x"));
 

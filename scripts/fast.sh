@@ -32,14 +32,14 @@ run() {
   local start end rc=0
   start=$(date +%s)
   if [ -z "${FAST_ONLINE:-}" ]; then
-    scripts/mvn.sh -o "$@" >"$FAST_LOG" 2>&1 || rc=$?
+    bash scripts/mvn.sh -o "$@" >"$FAST_LOG" 2>&1 || rc=$?
     if [ "$rc" -ne 0 ] && grep -qiE "offline mode|Cannot access .* in offline|Could not resolve dependencies" "$FAST_LOG"; then
       echo "offline resolution failed; retrying online" >&2
       rc=0
-      scripts/mvn.sh "$@" >"$FAST_LOG" 2>&1 || rc=$?
+      bash scripts/mvn.sh "$@" >"$FAST_LOG" 2>&1 || rc=$?
     fi
   else
-    scripts/mvn.sh "$@" >"$FAST_LOG" 2>&1 || rc=$?
+    bash scripts/mvn.sh "$@" >"$FAST_LOG" 2>&1 || rc=$?
   fi
   end=$(date +%s)
   # a pattern that matches no class passes silently under failIfNoSpecifiedTests=false: refuse that
@@ -81,7 +81,7 @@ case "$cmd" in
     fi
     ;;
   fmt)
-    scripts/mvn.sh -q spotless:apply
+    bash scripts/mvn.sh -q spotless:apply
     echo "formatted"
     ;;
   *) usage ;;

@@ -1,6 +1,7 @@
 package com.jaspersoft.jrsctl.acceptance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -220,6 +221,13 @@ class Phase0SkeletonTest {
   @Test
   void repo_tracks_no_personal_files_and_wires_an_executable_staged_only_hook() throws Exception {
     Path root = repoRoot();
+    String hook = Files.readString(root.resolve(".githooks/pre-commit"));
+    assertThat(hook).contains("--cached").contains("spotlessFiles");
+    assertThat(Files.readString(root.resolve("scripts/mvn.cmd"))).contains("core.hooksPath");
+    assertThat(Files.readString(root.resolve("scripts/mvn.sh"))).contains("core.hooksPath");
+
+    // Issue #188: a source archive (GitHub's "Download ZIP") has no index to inspect.
+    assumeTrue(Files.exists(root.resolve(".git")), "not a git checkout; no index to inspect");
     Process git =
         new ProcessBuilder("git", "ls-files", "-s")
             .directory(root.toFile())
@@ -235,11 +243,6 @@ class Phase0SkeletonTest {
         .as("the hook is tracked with the executable bit")
         .anyMatch(l -> l.startsWith("100755 ") && l.endsWith("	.githooks/pre-commit"));
     assertThat(tracked).noneMatch(l -> l.endsWith(".githooks/pre-commit.cmd"));
-
-    String hook = Files.readString(root.resolve(".githooks/pre-commit"));
-    assertThat(hook).contains("--cached").contains("spotlessFiles");
-    assertThat(Files.readString(root.resolve("scripts/mvn.cmd"))).contains("core.hooksPath");
-    assertThat(Files.readString(root.resolve("scripts/mvn.sh"))).contains("core.hooksPath");
   }
 
   /**
