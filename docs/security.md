@@ -70,6 +70,10 @@ Review `config-redacted.yaml` for host names and paths you consider sensitive be
 
 ## Reporting a vulnerability
 
+jrsctl is not maintained after 2.3.0, its final release: reports are no longer acted on and no
+fixed version will follow (`SECURITY.md` at the repository root). The process below is how reports
+were handled while it was maintained.
+
 Do not open a public issue for a security problem. Use GitHub's private vulnerability reporting
 for this repository (the Security tab, "Report a vulnerability"), which reaches the maintainers
 without publishing the report. Include the jrsctl version (`jrsctl --version`), the operating

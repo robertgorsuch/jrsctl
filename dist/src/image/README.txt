@@ -1,6 +1,10 @@
 jrsctl ${project.version} (${dist.platform})
 JasperReports Server lifecycle tool - Jaspersoft
 
+NO LONGER MAINTAINED: 2.3.0 is the final release. There will be no further
+fixes, security patches, Java runtime updates or new JasperReports Server
+versions.
+
 WHAT THIS IS
   A self-contained, portable installation of jrsctl: the application
   (lib/jrsctl.jar) plus a trimmed Java 21 runtime built with jlink

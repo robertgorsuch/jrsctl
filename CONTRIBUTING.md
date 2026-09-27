@@ -1,5 +1,10 @@
 # Contributing to jrsctl
 
+> **Not maintained after 2.3.0.** 2.3.0 is the final release. Issues and pull requests will not be
+> acted on, and no further release will be cut. To continue the work, fork the repository
+> (GPL-3.0-only); the rest of this guide describes how the project was built and released, and
+> still applies to a fork.
+
 jrsctl is the JasperReports Server lifecycle tool from Jaspersoft. It stops services,
 swaps files under `WEB-INF`, runs vendor upgrade scripts and re-imports repositories, so the
 project puts execution safety, idempotent steps, honest rollback and credential hygiene ahead of
@@ -167,6 +172,25 @@ hand. The only hand bump is the move to the next `-SNAPSHOT` after a tag (step 6
    commit. Otherwise every development build, its archive name and any support bundle claims a
    version older than the one just shipped.
 
+### After the final release
+
+2.3.0 is the final release. Once its tag run has published and its assets verify (checksums and
+signatures, `SECURITY.md`), skip step 6 and close the project down:
+
+1. Move or destroy the private signing key under Actian's key custody. It exists in two places:
+   the `JRSCTL_SIGNING_KEY` repository secret and the owner-only file
+   `C:\Users\rgorsuch\.jrsctl-release\release-signing.key` on the maintainer's machine. Record
+   which was done and where.
+2. Delete the `JRSCTL_SIGNING_KEY` repository secret (Settings, Secrets and variables, Actions),
+   and `NVD_API_KEY` from both the Actions and the Dependabot secret sets.
+3. Keep the public key and its fingerprint (`245731f29b662027`) published: the file
+   `core/src/main/resources/keys/jaspersoft-publisher.pub`, `SECURITY.md` and every release
+   stay as they are, so every past release stays verifiable. Do not delete releases or tags.
+4. Disable Dependabot: delete `.github/dependabot.yml` and turn off Dependabot alerts and security
+   updates in the repository settings. Close any Dependabot pull requests still open.
+5. Archive the repository (Settings, General, Archive this repository). An archived repository is
+   read-only: do this last.
+
 Every action in the workflows is pinned to a commit and every job has a timeout;
 `Phase0SkeletonTest` fails when either slips, and Dependabot's github-actions updates keep the
 pins current.
@@ -188,7 +212,7 @@ each dual licence in use. `Phase0SkeletonTest` fails when any document names a d
   contains all of that.
 - Security vulnerabilities: do not open a public issue. Use GitHub's private vulnerability
   reporting for this repository (Security tab, "Report a vulnerability"), as described in
-  `docs/security.md`.
+  `docs/security.md`. After 2.3.0 reports are not acted on (`SECURITY.md`).
 
 ## Code of conduct
 
