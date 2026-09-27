@@ -27,7 +27,7 @@ It comes as one download with everything it needs inside. There is nothing else 
 - **Use an account that is allowed to stop and start the server.** On Windows, open **Command Prompt** with **Run as administrator**. On Linux, use the account that runs the server, or `root`.
 - **Have the JasperReports Server admin password ready** (`superuser` on the Commercial edition, `jasperadmin` on the Community edition; `init` proposes the right one).
 - **No Java to install.** The download includes its own Java, used only by jrsctl. Nothing is installed on the machine, and jrsctl does not change the Java that JasperReports Server uses. For the server's own scripts (buildomatic) jrsctl uses the Java that came with your server, or the one you set as `vendor.javaHome`: Java 8 for 7.x, 11 for 8.x, 17 for 9.x and 10.x.
-- **Supported:** JasperReports Server 7.1 to 10.x, Community and Commercial editions, on Windows or Linux (64-bit).
+- **Supported:** JasperReports Server 7.1 to 10.x, Community and Commercial editions, on Apache Tomcat, on Windows or Linux (64-bit). JBoss EAP, WildFly and servers in containers are not supported: `init` says so and stops (backing up and copying content with `init --remote` still works against them).
 
 ---
 
@@ -35,7 +35,7 @@ It comes as one download with everything it needs inside. There is nothing else 
 
 ### Step 1: Download and unpack
 
-Download the archive for your system from the [releases page](https://github.com/robertgorsuch/jrs-ctl/releases):
+Download the archive for your system from the [releases page](https://github.com/robertgorsuch/jrsctl/releases):
 
 - Windows: `jrsctl-<version>-windows-x64.zip`
 - Linux: `jrsctl-<version>-linux-x64.tar.gz`
@@ -44,14 +44,14 @@ Unpack it on the server, then open a terminal in the unpacked folder:
 
 ```bash
 :: Windows (Command Prompt, run as administrator)
-tar -xf jrsctl-1.8.0-windows-x64.zip -C C:\Jaspersoft
-cd C:\Jaspersoft\jrsctl-1.8.0
+tar -xf jrsctl-2.2.0-windows-x64.zip -C C:\Jaspersoft
+cd C:\Jaspersoft\jrsctl-2.2.0
 ```
 
 ```bash
 # Linux
-tar -xzf jrsctl-1.8.0-linux-x64.tar.gz -C /opt
-cd /opt/jrsctl-1.8.0
+tar -xzf jrsctl-2.2.0-linux-x64.tar.gz -C /opt
+cd /opt/jrsctl-2.2.0
 ```
 
 > **How to type the commands.** This guide writes every command as `jrsctl …`.
@@ -215,7 +215,7 @@ jrsctl finishes every job by saying what happened and what to do next. The numbe
 | **3** | A step failed, and jrsctl put everything back | Read the message, fix the cause, run it again |
 | **4** | A step failed, and jrsctl could not put everything back | Follow the "next action" in the message. `jrsctl docs recovery-runbook` walks you through it |
 | **5** | You cancelled it, and jrsctl put everything back | Nothing |
-| **6** | This server version, or this upgrade step, isn't supported | Nothing changed. Check the supported versions under [Before you start](#before-you-start) |
+| **6** | This server version, this upgrade step, or this kind of installation (JBoss, WildFly, a container) isn't supported | Nothing changed. Check what is supported under [Before you start](#before-you-start) |
 | **7** | The hotfix isn't signed by a publisher jrsctl trusts, or the file was altered | Don't install it. Get a genuine copy from Jaspersoft |
 | **8** | An earlier job was interrupted (a crash or power cut) | Run the `jrsctl runs recover …` command it prints, to finish or undo that job |
 | **9** | Another jrsctl job is already running | Wait for it to finish |
@@ -223,8 +223,9 @@ jrsctl finishes every job by saying what happened and what to do next. The numbe
 Other useful commands:
 
 ```bash
-jrsctl runs list             # every job that has run, and how it ended
-jrsctl runs show <run id>    # the step-by-step detail of one job
+jrsctl runs list                    # every job that has run, and how it ended
+jrsctl runs list --status failed    # only the ones that failed (also --operation hotfix, --since 7d)
+jrsctl runs show <run id>           # the step-by-step detail of one job; the last few characters of the id are enough
 ```
 
 ---
@@ -238,7 +239,7 @@ Everything is built in and works without internet access:
 ```bash
 jrsctl help                       # list all commands
 jrsctl hotfix apply --explain     # what a command does, what it changes and how it undoes it
-jrsctl docs operator-guide        # the full operator guide
+jrsctl docs operator-guide        # the full operator guide, a screen at a time (Space, Enter, q)
 jrsctl docs recovery-runbook      # what to do after any failure
 ```
 
@@ -282,8 +283,8 @@ The main files are `config.yaml` (the settings `init` wrote), `snapshots\` (back
 
 Each release file has a `.sha256` checksum beside it:
 
-- Windows: `certutil -hashfile jrsctl-1.8.0-windows-x64.zip SHA256`
-- Linux: `sha256sum -c jrsctl-1.8.0-linux-x64.tar.gz.sha256`
+- Windows: `certutil -hashfile jrsctl-2.2.0-windows-x64.zip SHA256`
+- Linux: `sha256sum -c jrsctl-2.2.0-linux-x64.tar.gz.sha256`
 
 Releases are also signed by the Jaspersoft publisher key. See [`docs/security.md`](docs/security.md).
 
