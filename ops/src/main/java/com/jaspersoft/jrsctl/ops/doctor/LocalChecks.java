@@ -134,14 +134,14 @@ final class LocalChecks {
               + " JRSCTL_PASSPHRASE; a command that needs the secret asks for it or stops");
     }
     if (!weak.isEmpty()) {
-      // #158: the redactor masks a secret wherever it occurs, so a common word or a username is
-      // masked inside other words and names, and what surrounds the mask gives it away
+      // #158, #199: the redactor masks the username or the default name wherever it stands as a
+      // word, and what surrounds the mask gives the password away
       return ReportItem.warn(
           "secrets",
           String.join(", ", weak)
               + ": equals its username or a vendor installer default, so redaction cannot hide it;"
-              + " logs and support bundles mask the word wherever it appears, which makes them"
-              + " hard to read and shows what it is",
+              + " logs and support bundles mask that name wherever it stands alone, and the"
+              + " masked user names and defaults show what the password is",
           "change the password on the server or database, then store the new one with jrsctl"
               + " config set <key>");
     }

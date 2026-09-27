@@ -112,6 +112,57 @@ class RedactorTest {
   }
 
   @Test
+  void should_leave_larger_words_readable_when_a_word_secret_occurs_inside_them() {
+    // issue #199: the database password was a word that also occurs in the driver's package name
+    redactor.register("postgres");
+
+    assertThat(
+            redactor.redact(
+                "type: postgresql url: jdbc:postgresql://127.0.0.1:5433/jasperserver"
+                    + " org.postgresql.util.PSQLException username: jrs_postgres Postgres"))
+        .isEqualTo(
+            "type: postgresql url: jdbc:postgresql://127.0.0.1:5433/jasperserver"
+                + " org.postgresql.util.PSQLException username: jrs_postgres Postgres");
+  }
+
+  @Test
+  void should_mask_a_word_secret_when_it_stands_alone() {
+    redactor.register("postgres");
+
+    assertThat(
+            redactor.redact(
+                "password=postgres jdbc:postgresql://user:postgres@db/js?pw=postgres&x=1"
+                    + " \"postgres\" (postgres) postgres."))
+        .isEqualTo(
+            "password=[redacted] jdbc:postgresql://user:[redacted]@db/js?pw=[redacted]&x=1"
+                + " \"[redacted]\" ([redacted]) [redacted].");
+  }
+
+  @Test
+  void should_mask_encoded_forms_of_a_word_secret_even_inside_other_text() {
+    redactor.register("postgres");
+    String b64 = Base64.getEncoder().encodeToString("postgres".getBytes(StandardCharsets.UTF_8));
+
+    assertThat(redactor.redact("h=x" + b64 + "y")).isEqualTo("h=x[redacted]y");
+  }
+
+  @Test
+  void should_mask_a_secret_that_is_not_a_word_even_inside_other_text() {
+    redactor.register("hunter22");
+
+    assertThat(redactor.redact("abchunter22def")).isEqualTo("abc[redacted]def");
+  }
+
+  @Test
+  void should_treat_only_all_letter_values_as_words_when_registering() {
+    assertThat(Redactor.isWord("postgres")).isTrue();
+    assertThat(Redactor.isWord("contraseña")).isTrue();
+    assertThat(Redactor.isWord("postgres1")).isFalse();
+    assertThat(Redactor.isWord("post gres")).isFalse();
+    assertThat(Redactor.isWord("")).isFalse();
+  }
+
+  @Test
   void should_share_registrations_when_using_global_instance() {
     Redactor g = Redactor.global();
     g.register("global-secret-value");

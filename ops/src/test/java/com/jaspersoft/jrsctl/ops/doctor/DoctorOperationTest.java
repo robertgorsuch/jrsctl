@@ -535,7 +535,8 @@ class DoctorOperationTest {
 
   /**
    * Issue #158: a password that equals its username or is a vendor installer default cannot be
-   * hidden by redaction, which masks the word everywhere and so gives it away by context.
+   * hidden by redaction, which masks the name wherever it stands alone and so gives it away by
+   * context.
    */
   @Test
   void should_warn_secrets_when_a_password_equals_its_username_or_an_installer_default()

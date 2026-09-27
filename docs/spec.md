@@ -272,7 +272,7 @@ Rules:
 ### 5.8 Redaction
 
 - `RedactingFilter` applied to all log appenders, event payloads, support bundles, and `--json` output.
-- Patterns: configured secret values in raw, Base64, URL-encoded and JSON-string-escaped forms (the JSON outputs serialise first and redact afterwards, so a value holding `"` or `\` appears there escaped); `password=`; `Authorization:`; JSESSIONID; bearer tokens; keystore passwords.
+- Patterns: configured secret values in raw, Base64, URL-encoded and JSON-string-escaped forms (the JSON outputs serialise first and redact afterwards, so a value holding `"` or `\` appears there escaped); a value made only of letters is masked in its raw form only where no letter, digit or underscore touches it, so a word secret does not mangle identifiers that contain it (`org.postgresql`) or spell itself out around the mask (#199); `password=`; `Authorization:`; JSESSIONID; bearer tokens; keystore passwords.
 - Test: any string registered as a secret must not appear in any output stream in any of the three encodings (property-based test with jqwik).
 
 ### 5.9 Event model
