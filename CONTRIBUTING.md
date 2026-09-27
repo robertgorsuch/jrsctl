@@ -37,6 +37,19 @@ drives the packaged jar the way an operator would.
   select JDK 21 for you.
 - Windows: `scripts\mvn.cmd`; Linux: `scripts/mvn.sh`. Both delegate to the Maven Wrapper
   (`mvnw`, `mvnw.cmd`), which you can also call directly once `JAVA_HOME` points at JDK 21.
+  On Linux, `scripts/mvn.sh` needs `JRSCTL_JDK` or `JAVA_HOME` set to a JDK 21 home.
+- The build works from any of these (#188):
+  - a clone: `git clone`, then the scripts above;
+  - a source archive (GitHub's "Download ZIP", or a release's source code archive), which has
+    no `.git` and, unpacked by most tools, no executable bits: run the scripts through their
+    shell, `bash scripts/mvn.sh verify` (`scripts\mvn.cmd verify` on Windows). They call the
+    wrapper through `sh` and skip the git hook setup, and `Phase0SkeletonTest` skips its check of
+    the git index. Nothing else in the build reads git metadata;
+  - as root on Linux (a container, a build VM): root ignores permission bits, so the few tests
+    that take a permission away and expect jrsctl to be refused skip themselves there
+    (`PermissionBypass` in the core tests finds this out by reading a mode-000 file). CI's
+    `archive-as-root` job builds an unpacked `git archive` ZIP as root on every push. A normal
+    account is still the better choice: the tests that skip as root only run there.
 - `scripts\mvn.cmd verify` is the gate: compile with `-Werror` and Error Prone, unit tests,
   Spotless (google-java-format), then every acceptance phase against the shaded jar. It takes
   about eight minutes on a laptop.

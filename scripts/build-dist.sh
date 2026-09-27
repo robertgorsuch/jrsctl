@@ -3,4 +3,4 @@
 # Output: dist/target/image/<platform>/ and dist/target/jrsctl-<version>-<platform>.tar.gz
 # Usage: scripts/build-dist.sh [extra maven args]
 set -euo pipefail
-exec "$(dirname "$0")/mvn.sh" -Pdist -DskipTests package "$@"
+exec bash "$(dirname "$0")/mvn.sh" -Pdist -DskipTests package "$@"
