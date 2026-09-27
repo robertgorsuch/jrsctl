@@ -28,6 +28,9 @@ class RedactorPropertyTest {
         !Redactor.MASK.contains(secret)
             && !Redactor.MASK.contains(b64)
             && !Redactor.MASK.contains(url));
+    // a word secret is masked only where it stands alone (issue #199), which the next property
+    // covers; any other value is masked whatever touches it
+    Assume.that(!Redactor.isWord(secret));
 
     Redactor redactor = new Redactor();
     assertThat(redactor.register(secret)).isTrue();
@@ -37,6 +40,22 @@ class RedactorPropertyTest {
       assertThat(out).doesNotContain(secret).doesNotContain(b64).doesNotContain(url);
       assertThat(out).contains(Redactor.MASK);
     }
+  }
+
+  @Property(tries = 500)
+  void should_remove_a_word_secret_when_no_word_character_touches_it(
+      @ForAll("words") String secret,
+      @ForAll("surrounding") String prefix,
+      @ForAll("separators") String before,
+      @ForAll("separators") String after,
+      @ForAll("surrounding") String suffix) {
+    Assume.that(!Redactor.MASK.contains(secret));
+
+    Redactor redactor = new Redactor();
+    assertThat(redactor.register(secret)).isTrue();
+
+    String out = redactor.redact(prefix + before + secret + after + suffix);
+    assertThat(out).contains(before + Redactor.MASK + after);
   }
 
   @Property(tries = 200)
@@ -58,6 +77,16 @@ class RedactorPropertyTest {
   @Provide
   Arbitrary<String> secrets() {
     return Arbitraries.strings().withCharRange(' ', '~').ofMinLength(4).ofMaxLength(40);
+  }
+
+  @Provide
+  Arbitrary<String> words() {
+    return Arbitraries.strings().alpha().ofMinLength(4).ofMaxLength(20);
+  }
+
+  @Provide
+  Arbitrary<String> separators() {
+    return Arbitraries.of(" ", ":", "@", "=", "&", "/", ".", "\"", "'", "(", ")", "-", ",", ";");
   }
 
   @Provide

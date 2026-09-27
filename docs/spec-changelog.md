@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-27 (issue #199, word secrets are masked as whole words)
+
+- §5.8: a configured secret made only of letters is masked in its raw form only where no letter, digit or underscore touches it; a secret with any other character, and every encoded form, is still masked wherever it occurs. A password that is a common word no longer turns `org.postgresql` into `[redacted]ql` in logs and support bundles, which damaged diagnostics and showed what the mask hid.
+
 ## Draft 1.2 amendment — 2026-09-27 (issue #200, vendor-tool output in the JSON log)
 
 - §12.4: every line `js-export`, `js-import` and `js-ant` print is written, redacted and tagged with the run's `runId`, to the JSON log under the logger `com.jaspersoft.jrsctl.jrs.vendor.output`, so the bundle's `logs/<name>` carries it. The buildomatic script log cannot: the vendor wrappers write only their `validate-keystore` step there. Failure remediations for `js-export` and `js-import` point at `jrsctl.log` and `runs support-bundle` instead of the buildomatic log.
