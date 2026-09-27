@@ -9,6 +9,7 @@ import com.jaspersoft.jrsctl.jrs.api.BrokenDependencies;
 import com.jaspersoft.jrsctl.jrs.api.ImportRequest;
 import com.jaspersoft.jrsctl.jrs.vendor.Buildomatic;
 import com.jaspersoft.jrsctl.jrs.vendor.VendorRun;
+import com.jaspersoft.jrsctl.jrs.vendor.VendorTools;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -158,7 +159,8 @@ final class EventSteps {
                   + c.summary()
                   + ", so the events may not have been imported: "
                   + String.join(" | ", c.tail()),
-              "read the buildomatic log; run the vendor's js-import with the three --include-*"
+              VendorTools.outputHint("js-import")
+                  + "; run the vendor's js-import with the three --include-*"
                   + " flags by hand, or run the upgrade again");
         }
         case VendorRun.TimedOut t ->
