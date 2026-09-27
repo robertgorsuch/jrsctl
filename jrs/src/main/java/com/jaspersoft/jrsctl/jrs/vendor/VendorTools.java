@@ -1,6 +1,7 @@
 package com.jaspersoft.jrsctl.jrs.vendor;
 
 import com.jaspersoft.jrsctl.core.config.ConfigLoader;
+import com.jaspersoft.jrsctl.core.engine.Runner;
 import com.jaspersoft.jrsctl.core.event.Event;
 import com.jaspersoft.jrsctl.core.event.EventSink;
 import com.jaspersoft.jrsctl.core.platform.FileOps;
@@ -29,6 +30,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Runs the vendor {@code js-export}, {@code js-import} and {@code js-ant} scripts of a located
@@ -79,6 +83,21 @@ public final class VendorTools {
   private final Redactor redactor;
   private final Duration timeout;
   private final Set<String> withheld;
+
+  /** Logger that receives every line a vendor tool prints (issue #200). */
+  public static final String OUTPUT_LOGGER = "com.jaspersoft.jrsctl.jrs.vendor.output";
+
+  private static final Logger OUTPUT = LoggerFactory.getLogger(OUTPUT_LOGGER);
+
+  /**
+   * Where to read a vendor tool's full output (issue #200). Not the buildomatic log: js-export and
+   * js-import write only their validate-keystore step there.
+   */
+  public static String outputHint(String script) {
+    return "read the full "
+        + script
+        + " output in jrsctl.log, or collect it with jrsctl runs support-bundle <run id>";
+  }
 
   public VendorTools(ProcessRunner runner, FileOps files, Redactor redactor) {
     this(runner, files, redactor, DEFAULT_TIMEOUT);
@@ -467,6 +486,7 @@ public final class VendorTools {
                     case STDERR -> Event.Log.Level.WARN;
                   };
               log(sink, scope, level, text);
+              record(scope, invocation.script(), line.stream(), text);
             });
     List<String> lines;
     VendorRun.Reported reported;
@@ -595,6 +615,32 @@ public final class VendorTools {
       return Optional.of(VendorRun.Reported.SUCCEEDED);
     }
     return Optional.empty();
+  }
+
+  /**
+   * Writes one redacted output line to the JSON log under the run's id (issue #200): the vendor
+   * wrappers do not log what ExportCommand and ImportCommand print, so this is the only full copy,
+   * and a support bundle picks it up by run id. INFO for both streams, because the console appender
+   * shows WARN and the progress renderer already prints the line. The caller may be the run's own
+   * thread or a process reader thread, so the run id is set for the one call and whatever the
+   * thread held before is put back.
+   */
+  private static void record(
+      LogScope scope, String script, ProcessRunner.OutputLine.Stream stream, String text) {
+    String previous = MDC.get(Runner.MDC_RUN_ID);
+    MDC.put(Runner.MDC_RUN_ID, scope.runId());
+    try {
+      switch (stream) {
+        case STDOUT -> OUTPUT.info("{}: {}", script, text);
+        case STDERR -> OUTPUT.info("{} stderr: {}", script, text);
+      }
+    } finally {
+      if (previous == null) {
+        MDC.remove(Runner.MDC_RUN_ID);
+      } else {
+        MDC.put(Runner.MDC_RUN_ID, previous);
+      }
+    }
   }
 
   private void log(EventSink sink, LogScope scope, Event.Log.Level level, String message) {

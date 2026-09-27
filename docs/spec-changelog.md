@@ -1,5 +1,9 @@
 # jrsctl spec changelog
 
+## Draft 1.2 amendment — 2026-09-27 (issue #200, vendor-tool output in the JSON log)
+
+- §12.4: every line `js-export`, `js-import` and `js-ant` print is written, redacted and tagged with the run's `runId`, to the JSON log under the logger `com.jaspersoft.jrsctl.jrs.vendor.output`, so the bundle's `logs/<name>` carries it. The buildomatic script log cannot: the vendor wrappers write only their `validate-keystore` step there. Failure remediations for `js-export` and `js-import` point at `jrsctl.log` and `runs support-bundle` instead of the buildomatic log.
+
 ## Draft 1.2 amendment — 2026-09-26 (issue #118, Tomcat only and not in containers; ADR-0043)
 
 - §19 Q2 resolved: jrsctl manages JasperReports Server on Apache Tomcat only. §12.0: `init` refuses with exit 6 when jrsctl runs inside a container (Linux markers of Docker, Podman, Kubernetes) or `--install-dir` names a JBoss EAP or WildFly home; `--remote` is never refused. §12.1: new doctor item `deployment` on the same conditions, which alone exits 6 like `compat`; `layout` is skipped on a JBoss/WildFly home.

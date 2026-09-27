@@ -10,6 +10,7 @@ import com.jaspersoft.jrsctl.jrs.api.ExportRequest;
 import com.jaspersoft.jrsctl.jrs.vendor.Buildomatic;
 import com.jaspersoft.jrsctl.jrs.vendor.BuildomaticResolution;
 import com.jaspersoft.jrsctl.jrs.vendor.VendorRun;
+import com.jaspersoft.jrsctl.jrs.vendor.VendorTools;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,7 +121,7 @@ final class RunJsExport implements Step {
         return Failures.recoverable(
             "js-export exited 0 but wrote no archive at " + part,
             List.of(part),
-            "check the buildomatic log for the export and run again");
+            VendorTools.outputHint("js-export") + ", then run again");
       }
       RunFiles.replace(part, output);
       Logs.info(out, ctx, this, "exported " + size + " bytes to " + output);
@@ -137,7 +138,8 @@ final class RunJsExport implements Step {
     return Failures.recoverable(
         "js-export " + c.summary() + ": " + String.join(" | ", c.tail()),
         List.of(part),
-        "check the buildomatic log and the database connection in default_master.properties");
+        VendorTools.outputHint("js-export")
+            + "; check the database connection in default_master.properties");
   }
 
   @Override

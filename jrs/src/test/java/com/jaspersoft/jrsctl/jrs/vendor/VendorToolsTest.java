@@ -2,6 +2,11 @@ package com.jaspersoft.jrsctl.jrs.vendor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.jaspersoft.jrsctl.core.engine.Runner;
 import com.jaspersoft.jrsctl.core.event.Event;
 import com.jaspersoft.jrsctl.core.platform.Platform;
 import com.jaspersoft.jrsctl.core.platform.ProcessRunner;
@@ -24,6 +29,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 class VendorToolsTest {
 
@@ -663,6 +670,67 @@ class VendorToolsTest {
         .doesNotContain("s3cretValue")
         .contains(Redactor.MASK);
     assertThat(sink.of(Event.Log.class).get(1).level()).isEqualTo(Event.Log.Level.WARN);
+  }
+
+  /**
+   * Issue #200: js-export.bat tees only its validate-keystore step into the buildomatic log, so the
+   * export's own output reached nothing but the console and a 20-line tail. Every line now goes to
+   * the JSON log, redacted and tagged with the run id, which is what a support bundle collects.
+   */
+  @Test
+  void should_write_every_output_line_to_the_log_with_the_run_id_when_a_vendor_tool_runs() {
+    redactor.register("s3cretValue");
+    runner.answer(
+        (request, onLine) -> {
+          for (int i = 1; i <= 30; i++) {
+            onLine.accept(
+                new ProcessRunner.OutputLine(ProcessRunner.OutputLine.Stream.STDOUT, "line " + i));
+          }
+          onLine.accept(
+              new ProcessRunner.OutputLine(
+                  ProcessRunner.OutputLine.Stream.STDERR, "dbPassword=s3cretValue failed"));
+          return new ProcessRunner.Result(1, false, Duration.ofMillis(3));
+        });
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    Logger logger = (Logger) LoggerFactory.getLogger(VendorTools.OUTPUT_LOGGER);
+    logger.addAppender(appender);
+    MDC.put(Runner.MDC_RUN_ID, "run-1");
+    try {
+      tools().ant(buildomatic, "import-minimal-ce", List.of(), Optional.of(javaHome), sink, scope);
+
+      assertThat(MDC.get(Runner.MDC_RUN_ID))
+          .as("the calling thread keeps its run id")
+          .isEqualTo("run-1");
+    } finally {
+      MDC.remove(Runner.MDC_RUN_ID);
+      logger.detachAppender(appender);
+    }
+
+    assertThat(appender.list)
+        .hasSize(31)
+        .allSatisfy(e -> assertThat(e.getLevel()).isEqualTo(Level.INFO))
+        .allSatisfy(e -> assertThat(e.getMDCPropertyMap()).containsEntry("runId", "run-1"));
+    assertThat(appender.list)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .startsWith("js-ant: line 1")
+        .contains("js-ant: line 30")
+        .last()
+        .satisfies(
+            m ->
+                assertThat(m)
+                    .startsWith("js-ant stderr: ")
+                    .contains(Redactor.MASK)
+                    .doesNotContain("s3cretValue"));
+  }
+
+  @Test
+  void should_not_leave_a_run_id_behind_when_the_calling_thread_had_none() {
+    runner.exit(0, "BUILD SUCCESSFUL");
+
+    tools().ant(buildomatic, "import-minimal-ce", List.of(), Optional.of(javaHome), sink, scope);
+
+    assertThat(MDC.get(Runner.MDC_RUN_ID)).isNull();
   }
 
   @Test

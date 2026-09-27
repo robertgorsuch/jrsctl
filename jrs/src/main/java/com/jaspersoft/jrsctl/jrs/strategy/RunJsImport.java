@@ -13,6 +13,7 @@ import com.jaspersoft.jrsctl.jrs.api.ImportRequest;
 import com.jaspersoft.jrsctl.jrs.vendor.Buildomatic;
 import com.jaspersoft.jrsctl.jrs.vendor.BuildomaticResolution;
 import com.jaspersoft.jrsctl.jrs.vendor.VendorRun;
+import com.jaspersoft.jrsctl.jrs.vendor.VendorTools;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -147,7 +148,8 @@ final class RunJsImport implements Step {
               + ", so the archive may not have been imported: "
               + String.join(" | ", c.tail()),
           List.of(request.archive()),
-          "check the buildomatic log; the pre-import snapshot is re-imported by rollback");
+          VendorTools.outputHint("js-import")
+              + "; the pre-import snapshot is re-imported by rollback");
     }
     if (c.reported() != VendorRun.Reported.SUCCEEDED) {
       return Failures.recoverable(

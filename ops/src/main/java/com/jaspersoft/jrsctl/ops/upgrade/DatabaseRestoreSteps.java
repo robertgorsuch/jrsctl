@@ -12,6 +12,7 @@ import com.jaspersoft.jrsctl.jrs.api.BrokenDependencies;
 import com.jaspersoft.jrsctl.jrs.api.ImportRequest;
 import com.jaspersoft.jrsctl.jrs.vendor.Buildomatic;
 import com.jaspersoft.jrsctl.jrs.vendor.VendorRun;
+import com.jaspersoft.jrsctl.jrs.vendor.VendorTools;
 import com.jaspersoft.jrsctl.ops.db.JdbcConnector;
 import com.jaspersoft.jrsctl.ops.db.JdbcException;
 import com.jaspersoft.jrsctl.ops.db.JdbcSettings;
@@ -324,7 +325,8 @@ final class DatabaseRestoreSteps {
                         + c.summary()
                         + ", so the export may not have been re-imported: "
                         + String.join(" | ", c.tail()),
-                    "read the buildomatic log; the database holds whatever the import got to,"
+                    VendorTools.outputHint("js-import")
+                        + "; the database holds whatever the import got to,"
                         + " and re-running the rollback repeats the import with --update");
         case VendorRun.TimedOut t ->
             Failures.recoverable(
