@@ -40,7 +40,7 @@
          signature attests something that can be rebuilt. Bump it with each release. The jlink
          runtime image is not reproducible (ADR-0003), which is why the manifest and the signature
          cover the archive rather than the image alone. -->
-    <project.build.outputTimestamp>2026-09-26T01:15:05Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-09-26T23:59:15Z</project.build.outputTimestamp>
 
     <!-- Runtime dependencies (spec §13.3 approved list) -->
     <picocli.version>4.7.7</picocli.version>
