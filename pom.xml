@@ -52,7 +52,7 @@
     <json-schema-validator.version>1.4.0</json-schema-validator.version>
     <commons-compress.version>1.28.0</commons-compress.version>
     <!-- transitive through commons-compress; pinned so the SBOM never carries an old lang3 -->
-    <commons-lang3.version>3.20.0</commons-lang3.version>
+    <commons-lang3.version>3.21.0</commons-lang3.version>
     <semver4j.version>5.8.0</semver4j.version>
     <jline.version>3.30.17</jline.version>
 
