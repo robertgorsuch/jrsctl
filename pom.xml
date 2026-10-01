@@ -44,7 +44,7 @@
 
     <!-- Runtime dependencies (spec §13.3 approved list) -->
     <picocli.version>4.7.7</picocli.version>
-    <jackson.version>2.22.2</jackson.version>
+    <jackson.version>2.22.3</jackson.version>
     <slf4j.version>2.0.19</slf4j.version>
     <logback.version>1.5.38</logback.version>
     <logstash-logback.version>7.4</logstash-logback.version>
