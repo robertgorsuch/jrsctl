@@ -39,7 +39,7 @@
     <dist.modules.fixed>java.base,java.sql,java.net.http,java.naming,java.logging,java.xml,java.management,java.security.sasl,java.security.jgss,java.instrument,jdk.crypto.ec,jdk.unsupported,jdk.zipfs,jdk.charsets</dist.modules.fixed>
     <dist.modules.excluded>java.desktop</dist.modules.excluded>
     <cyclonedx.version>2.9.3</cyclonedx.version>
-    <maven-assembly.version>3.7.1</maven-assembly.version>
+    <maven-assembly.version>3.8.0</maven-assembly.version>
   </properties>
 
   <dependencies>
